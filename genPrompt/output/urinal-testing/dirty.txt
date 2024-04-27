@@ -1,0 +1,8 @@
+a white porcelain urinal in a bathroom, white tile wall, wall mounted, dirty, front perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, white tile wall, wall mounted, dirty, side perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, gray tile wall, wall mounted, dirty, front perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, gray tile wall, wall mounted, dirty, side perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, white wall, wall mounted, dirty, front perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, white wall, wall mounted, dirty, side perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, gray wall, wall mounted, dirty, front perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>
+a white porcelain urinal in a bathroom, gray wall, wall mounted, dirty, side perspective, close-up viewpoint, <lora:dirtyStyle_LoRA_v1-000008:0.8>

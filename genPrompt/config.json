@@ -1,0 +1,37 @@
+{
+    "name": "urinalDataset_v1",
+    "txt2img": {
+        "object_names": ["urinal"],
+        "object_materials": ["white porcelain", "stainless steel", "ceramic" ],
+        "backgrounds": ["white tile wall", "gray tile wall", "white wall", "gray wall"],
+        "perspective": ["front view", "top view"],
+        "viewpoints": ["close-up"],
+        "seeds_per_prompt": 1,
+        "sets": [
+            {
+                "dataset_class": "clean",
+                "dirtiness": ["clean"],
+                "LoRA": [""],
+                "prompts": [
+                    "{object_name}, a {object_material} {object_name} in a tiled bathroom, {background}, wall mounted, {dirtiness}, {perspective}, {viewpoint}, {LoRA}"
+                ]
+            },
+            {
+                "dataset_class": "slightly_dirty",
+                "dirtiness": ["slightly dirty", "stains"],
+                "LoRA": ["<lora:dirtyStyle_LoRA_v1-000008:0.35>"],
+                "prompts": [
+                    "{object_name}, a {object_material} {object_name} in a tiled bathroom, {background}, wall mounted, {dirtiness}, {perspective}, {viewpoint}, {LoRA}"
+                ]
+            },
+            {
+                "dataset_class": "dirty",
+                "dirtiness": ["dirty", "grimy", "solid soiling", "stains"],
+                "LoRA": ["<lora:dirtyStyle_LoRA_v1-000008:0.6>"],
+                "prompts": [
+                    "{object_name}, a {object_material} {object_name} in a tiled bathroom, {background}, wall mounted, {dirtiness}, {perspective}, {viewpoint}, {LoRA}"
+                ]
+            }
+        ]
+    }
+}

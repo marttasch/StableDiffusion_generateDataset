@@ -1,0 +1,21 @@
+{
+    "name": "urinalDataset_v1",
+    "txt2img": {
+        "object_names": ["urinal"],
+        "object_materials": ["white", "white porcelain", "stainless steel", "ceramic" ],
+        "backgrounds": ["(white) tile wall", "(white) tile wall, tile floor", "gray tile wall", "gray tile wall, tile floor", "white wall", "gray wall"],
+        "perspective": ["front view", "top view"],
+        "viewpoints": ["close-up"],
+        "seeds_per_prompt": 6,
+        "sets": [
+            {
+                "dataset_class": "generic",
+                "dirtiness": [""],
+                "LoRA": [""],
+                "prompts": [
+                    "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted"
+                ]
+            }
+        ]
+    }
+}

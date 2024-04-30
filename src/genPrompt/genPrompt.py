@@ -44,7 +44,7 @@ def generate_prompts_from_json(json_data, type="txt2img"):
         prompts[set_class] = set_prompts
     return prompts
 
-def genPrompt(configFile='config.json'):
+def genPrompts(configFile='config.json'):
     # read config file
     with open(configFile, 'r') as jsonFile:
         promptConfig = json.load(jsonFile)
@@ -101,4 +101,4 @@ if __name__ == '__main__':
         configFile = sys.argv[1]
         print("Using config file: ", configFile) 
 
-    promptList = genPrompt(configFile=configFile)
+    promptList = genPrompts(configFile=configFile)

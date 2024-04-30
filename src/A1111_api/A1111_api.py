@@ -1,0 +1,107 @@
+from datetime import datetime
+import urllib.request
+import requests
+import base64
+import json
+import time
+import os
+
+class APIHandler:
+    def __init__(self):
+        self.webui_server_url = 'http://127.0.0.1:7860'
+        self.out_dir = 'api_out'
+        self.out_dir_t2i = os.path.join(self.out_dir, 'txt2img')
+        self.out_dir_i2i = os.path.join(self.out_dir, 'img2img')
+        os.makedirs(self.out_dir_t2i, exist_ok=True)
+        os.makedirs(self.out_dir_i2i, exist_ok=True)
+
+    @staticmethod
+    def timestamp():
+        return datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")
+
+    @staticmethod
+    def encode_file_to_base64(path):
+        with open(path, 'rb') as file:
+            return base64.b64encode(file.read()).decode('utf-8')
+
+    @staticmethod
+    def decode_and_save_base64(base64_str, save_path):
+        with open(save_path, "wb") as file:
+            file.write(base64.b64decode(base64_str))
+
+    def call_api(self, api_endpoint, **payload):
+        response = requests.post(f'{self.webui_server_url}/{api_endpoint}', json=payload)
+        return response.json()
+
+    def call_txt2img_api(self, out_dir=None, **payload):
+        response = self.call_api('sdapi/v1/txt2img', **payload)
+        for index, image in enumerate(response.get('images')):
+            if out_dir:
+                save_path = os.path.join(out_dir, f'txt2img-{self.timestamp()}.png')
+            else:
+                save_path = os.path.join(self.out_dir_t2i, f'txt2img-{self.timestamp()}-{index}.png')
+            self.decode_and_save_base64(image, save_path)
+        return save_path, response
+
+    def call_img2img_api(self, out_dir=None, **payload):
+        response = self.call_api('sdapi/v1/img2img', **payload)
+        for index, image in enumerate(response.get('images')):
+            if out_dir:
+                save_path = os.path.join(out_dir, f'img2img-{self.timestamp()}.png')
+            else:
+                save_path = os.path.join(self.out_dir_i2i, f'img2img-{self.timestamp()}-{index}.png')
+            self.decode_and_save_base64(image, save_path)
+        return save_path, response
+
+    
+# Usage
+if __name__ == '__main__':
+    api_handler = APIHandler()
+    # ... rest of your code ...
+    api_handler.call_txt2img_api(**payload)
+    # ... rest of your code ...
+    api_handler.call_img2img_api(**payload)
+
+if __name__ == '__main__':
+    payload = {
+        "prompt": "masterpiece, (best quality:1.1), puppy",  # extra networks also in prompts
+        "negative_prompt": "",
+        "seed": 1,
+        "steps": 20,
+        "width": 512,
+        "height": 512,
+        "cfg_scale": 7,
+        "sampler_name": "DPM++ 2M Karras",
+        "n_iter": 1,
+        "batch_size": 1,
+    }
+
+    api = APIHandler()
+    api.call_img2img_api(**payload)
+
+    # init_images = [
+    #     encode_file_to_base64(r"B:\path\to\img_1.png"),
+    #     # encode_file_to_base64(r"B:\path\to\img_2.png"),
+    #     # "https://image.can/also/be/a/http/url.png",
+    # ]
+
+    # batch_size = 2
+    # payload = {
+    #     "prompt": "1girl, blue hair",
+    #     "seed": 1,
+    #     "steps": 20,
+    #     "width": 512,
+    #     "height": 512,
+    #     "denoising_strength": 0.5,
+    #     "n_iter": 1,
+    #     "init_images": init_images,
+    #     "batch_size": batch_size if len(init_images) == 1 else len(init_images),
+    #     # "mask": encode_file_to_base64(r"B:\path\to\mask.png")
+    # }
+    # # if len(init_images) > 1 then batch_size should be == len(init_images)
+    # # else if len(init_images) == 1 then batch_size can be any value int >= 1
+    # call_img2img_api(**payload)
+
+    # # there exist a useful extension that allows converting of webui calls to api payload
+    # # particularly useful when you wish setup arguments of extensions and scripts
+    # # https://github.com/huchenlei/sd-webui-api-payload-display

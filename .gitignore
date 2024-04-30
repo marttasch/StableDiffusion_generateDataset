@@ -5,6 +5,8 @@
 **/image_generation_output/
 **/genPrompt/output
 
+**.png
+
 # === Default === 
 # Byte-compiled / optimized / DLL files
 __pycache__/

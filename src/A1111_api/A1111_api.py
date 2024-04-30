@@ -52,6 +52,27 @@ class APIHandler:
                 save_path = os.path.join(self.out_dir_i2i, f'img2img-{self.timestamp()}-{index}.png')
             self.decode_and_save_base64(image, save_path)
         return save_path, response
+    
+    # sam
+    def call_sam_predict_api(self, decoded_image, prompt):
+        payload_sam = {
+            "sam_model_name": "sam_vit_h_4b8939.pth",
+            "input_image": decoded_image,
+            "dino_enabled": True,
+            "dino_model_name": "GroundingDINO_SwinT_OGC (694MB)",
+            "dino_text_prompt": prompt,
+            "dino_box_threshold": 0.3,
+            "dino_preview_checkbox": False,
+            }
+        
+        r = self.call_api('sam/sam-predict', **payload_sam)
+
+        msg = r['msg']
+        blended_images = r['blended_images']
+        masks = r['masks']
+        masked_images = r['masked_images']
+
+        return msg, blended_images, masks, masked_images
 
     
 # Usage

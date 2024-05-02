@@ -19,10 +19,9 @@ useOutputImageIndex = 2   # if safeOutputImagesPerImage is 1, select which outpu
 
 samModelName = 'sam_vit_h_4b8939.pth'
 
-
 dinoEnabled = True
 dinoPrompt = 'toilet'
-dinoModelName = 'GroundingDINO_SwinT_OGC (694MB)'   # GroundingDINO_SwinT_OGC (694MB), GroundingDINO_SwinB (938MB)
+dinoModelName = 'GroundingDINO_SwinB (938MB)'   # GroundingDINO_SwinT_OGC (694MB), GroundingDINO_SwinB (938MB)
 
 # Generation
 maxGenerationCount = 10000

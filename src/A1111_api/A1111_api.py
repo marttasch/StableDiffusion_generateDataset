@@ -33,23 +33,31 @@ class APIHandler:
         response = requests.post(f'{self.webui_server_url}/{api_endpoint}', json=payload)
         return response.json()
 
-    def call_txt2img_api(self, out_dir=None, **payload):
+    def call_txt2img_api(self, fileName=None, out_dir=None, **payload):
         response = self.call_api('sdapi/v1/txt2img', **payload)
+
+        if fileName is None:
+            fileName = f'txt2img-{self.timestamp()}'
+        
         for index, image in enumerate(response.get('images')):
             if out_dir:
-                save_path = os.path.join(out_dir, f'txt2img-{self.timestamp()}.png')
+                save_path = os.path.join(out_dir, (fileName + f'_{index}.png'))
             else:
-                save_path = os.path.join(self.out_dir_t2i, f'txt2img-{self.timestamp()}-{index}.png')
+                save_path = os.path.join(self.out_dir_t2i, (fileName + f'_{index}.png'))
             self.decode_and_save_base64(image, save_path)
         return save_path, response
 
-    def call_img2img_api(self, out_dir=None, **payload):
+    def call_img2img_api(self, fileName=None, out_dir=None, **payload):
         response = self.call_api('sdapi/v1/img2img', **payload)
+
+        if fileName is None:
+            fileName = f'img2img-{self.timestamp()}'
+
         for index, image in enumerate(response.get('images')):
             if out_dir:
-                save_path = os.path.join(out_dir, f'img2img-{self.timestamp()}.png')
+                save_path = os.path.join(out_dir, (fileName + f'_{index}.png'))
             else:
-                save_path = os.path.join(self.out_dir_i2i, f'img2img-{self.timestamp()}-{index}.png')
+                save_path = os.path.join(self.out_dir_i2i, (fileName + f'_{index}.png'))
             self.decode_and_save_base64(image, save_path)
         return save_path, response
     
@@ -75,14 +83,6 @@ class APIHandler:
         return msg, blended_images, masks, masked_images
 
     
-# Usage
-if __name__ == '__main__':
-    api_handler = APIHandler()
-    # ... rest of your code ...
-    api_handler.call_txt2img_api(**payload)
-    # ... rest of your code ...
-    api_handler.call_img2img_api(**payload)
-
 if __name__ == '__main__':
     payload = {
         "prompt": "masterpiece, (best quality:1.1), puppy",  # extra networks also in prompts

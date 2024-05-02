@@ -44,47 +44,51 @@ def generate_prompts_from_json(json_data, type="txt2img"):
         prompts[set_class] = set_prompts
     return prompts
 
-def genPrompts(configFile='config.json'):
+def genPrompts(datasetName=None, configFile='config.json'):
     # read config file
     with open(configFile, 'r') as jsonFile:
         promptConfig = json.load(jsonFile)
 
     # extract promptConfig
     promptsetsName = promptConfig['name']
-    # txt2img
+    if datasetName:
+        promptsetsName = datasetName
+
+    # get prompts
     promptSets = generate_prompts_from_json(promptConfig, type="txt2img")
 
-    # create output folder
-    outputFolder = 'output/' + promptsetsName + '/'
-    print('Output folder:', outputFolder)
-    os.makedirs(outputFolder, exist_ok=True)
+    if False:
+        # create output folder
+        outputFolder = 'output/' + promptsetsName + '/'
+        print('Output folder:', outputFolder)
+        os.makedirs(outputFolder, exist_ok=True)
 
-    # save promtSets as json
-    with open('output/' + promptsetsName + '/prompts.json', 'w') as f:
-        json.dump(promptSets, f, indent=4)
-    print('Prompts written to', outputFolder + 'prompts.json')
+        # save promtSets as json
+        with open('output/' + promptsetsName + '/prompts.json', 'w') as f:
+            json.dump(promptSets, f, indent=4)
+        print('Prompts written to', outputFolder + 'prompts.json')
 
-    # write prompts set to txt as single file per set, promptsets is a dictionary
-    promptCount = 0
-    promptTotalList = []
-    for set in promptSets:
-        promptTotalList.append({'prompt': '== ' + set + ' ==: car'})
-        setPrompts = promptSets[set]
-        with open(outputFolder + set + '.txt', 'w') as f:
-            for prompt in setPrompts:
+        # write prompts set to txt as single file per set, promptsets is a dictionary
+        promptCount = 0
+        promptTotalList = []
+        for set in promptSets:
+            promptTotalList.append({'prompt': '== ' + set + ' ==: car'})
+            setPrompts = promptSets[set]
+            with open(outputFolder + set + '.txt', 'w') as f:
+                for prompt in setPrompts:
+                    f.write(prompt['prompt'] + '\n')
+                    promptTotalList.append(prompt)
+            print('Prompts written to', outputFolder + set + '.txt')
+            print('Number of prompts:', len(setPrompts))
+            print('Example prompt:', setPrompts[0]['prompt'])
+            print('')
+            promptCount += len(setPrompts)
+            
+
+        with open(outputFolder + 'total.txt', 'w') as f:
+            for prompt in promptTotalList:
                 f.write(prompt['prompt'] + '\n')
-                promptTotalList.append(prompt)
-        print('Prompts written to', outputFolder + set + '.txt')
-        print('Number of prompts:', len(setPrompts))
-        print('Example prompt:', setPrompts[0]['prompt'])
-        print('')
-        promptCount += len(setPrompts)
-        
-
-    with open(outputFolder + 'total.txt', 'w') as f:
-        for prompt in promptTotalList:
-            f.write(prompt['prompt'] + '\n')
-    print('Total number of prompts:', promptCount)
+        print('Total number of prompts:', promptCount)
 
     return promptSets
 

@@ -7,8 +7,22 @@ import src.genPrompt.genPrompt as genPrompt
 
 import logging
 
-# ===== Conig =====
+# ===== Config =====
 datasetName = 'urinal_v3-testing'
+
+# segmentation
+segmentationOutputFolder = 'seg'
+safeOutputImagesPerImage = 1   # 3, 1
+useOutputImageIndex = 2   # if safeOutputImagesPerImage is 1, select which output image to use (0, 1, 2)
+
+samModelName = 'sam_vit_h_4b8939.pth'
+
+
+dinoEnabled = True
+dinoPrompt = 'toilet'
+dinoModelName = 'GroundingDINO_SwinT_OGC (694MB)'   # GroundingDINO_SwinT_OGC (694MB), GroundingDINO_SwinB (938MB)
+
+# Generation
 maxGenerationCount = 10000
 
 prompt = "puppy dog"   # default prompt, will be overwritten by genPrompt
@@ -85,7 +99,7 @@ imageCount = 1
 imageGeneratedCount = [0, 0, 0]
 
 # === Functions ===
-def printFinalStats(promptCount, imageGeneratedCount, totalImages, startTime):
+def printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime):
     endTime = time.time()
     timeElapsed = endTime - startTime
     hours, remainder = divmod(timeElapsed, 3600)
@@ -135,6 +149,14 @@ def generateImages():
     print('')
     logging.info('### Generating images... ###')
     logging.info('Make sure the SD Model is loaded to VRAM (Settings > Actions > Load SD checkpoint to VRAM from RAM)')
+
+    # wait for user to load model to RAM
+    userInput = 'n'
+    while userInput.lower() != 'y':
+        userInput = input('SD Model loaded to RAM? [(y)es/(n)o/(e)nd]: ')
+        if userInput.lower() == 'e':
+            print('Exiting...')
+            exit()
 
     for prompt in promptSet:
         seed = random.randint(1000, 9999999999)
@@ -208,6 +230,95 @@ def generateImages():
         imageCount += 1
         imageGeneratedCount[2] += 1
 
+def segmentate(classFolder):
+
+    # create output folder
+    out_dir = os.path.join(classFolder, segmentationOutputFolder)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # get all images in class folder
+    images = [os.path.join(classFolder, f) for f in os.listdir(classFolder) if os.path.isfile(os.path.join(classFolder, f))]
+    totalImages = len(images)
+    logging.info('Segmentating %s images in %s', totalImages, classFolder)
+
+    # segmentate images
+    imageCount = 1
+    for image in images:
+        logging.info(f'Segmentating image [{imageCount}/{totalImages}]: {image}')
+        decoded_image = api.encode_file_to_base64(image)
+        msg, blended_images, masks, masked_images = api.call_sam_predict_api(decoded_image=decoded_image, samModelName=samModelName, dinoEnabled=dinoEnabled, dinoPrompt=dinoPrompt, dino_model_name=dinoModelName)
+        
+        # == save images ==
+        out_dir = os.path.join(classFolder, segmentationOutputFolder)
+
+        # blended images
+        fileName = os.path.basename(image).split('.')[0] + '-blended'
+        if safeOutputImagesPerImage == 1:
+            save_path = os.path.join(out_dir, (fileName + f'_{useOutputImageIndex}.png'))
+            api.decode_and_save_base64(blended_images[useOutputImageIndex], save_path)
+        else:    
+            for index, img in enumerate(blended_images):
+                save_path = os.path.join(out_dir, (fileName + f'_{index}.png'))
+                api.decode_and_save_base64(img, save_path)
+
+        # masked images
+        fileName = os.path.basename(image).split('.')[0] + '-masked'
+        if safeOutputImagesPerImage == 1:
+            save_path = os.path.join(out_dir, (fileName + f'_{useOutputImageIndex}.png'))
+            api.decode_and_save_base64(masked_images[useOutputImageIndex], save_path)
+        else:
+            for index, img in enumerate(masked_images):
+                save_path = os.path.join(out_dir, (fileName + f'_{index}.png'))
+                api.decode_and_save_base64(img, save_path)
+
+        # masks
+        fileName = os.path.basename(image).split('.')[0] + '-mask'
+        if safeOutputImagesPerImage == 1:
+            save_path = os.path.join(out_dir, (fileName + f'_{useOutputImageIndex}.png'))
+            api.decode_and_save_base64(masks[useOutputImageIndex], save_path)
+        else:
+            for index, img in enumerate(masks):
+                save_path = os.path.join(out_dir, (fileName + f'_{index}.png'))
+                api.decode_and_save_base64(img, save_path)
+        
+        imageCount += 1
+
+def segmentateImages():
+    
+    print('')
+    logging.info('### Segmentating images... ###')
+    logging.info('Make sure the SD Model is loaded to RAM (Settings > Actions > Load SD checkpoint to VRAM from RAM)')
+
+    # wait for user to load model to RAM
+    userInput = 'n'
+    while userInput.lower() != 'y':
+        userInput = input('SD Model loaded to RAM? [(y)es/(n)o/(e)nd]: ')
+        if userInput.lower() == 'e':
+            print('Exiting...')
+            exit()
+
+    # get all images in dataset folder
+    datasetFolder = os.path.join(outputFolder, datasetName)
+    cleanFolder = os.path.join(datasetFolder, 'clean')
+    avgDirtyFolder = os.path.join(datasetFolder, 'avgDirty')
+    dirtyFolder = os.path.join(datasetFolder, 'dirty')
+
+    # segmentate images  
+    print('')
+    logging.info('Segmentate Class: clean (1/3)')
+    segmentate(cleanFolder)
+
+    print('')
+    logging.info('Segmentate Class: avgDirty (2/3)')
+    segmentate(avgDirtyFolder)
+
+    print('')
+    logging.info('Segmentate Class: dirty (3/3)')
+    segmentate(dirtyFolder)
+
+    
+    
 
 # ====== Main ======
 if __name__ == '__main__':
@@ -218,10 +329,18 @@ if __name__ == '__main__':
     logging.info('APIHandler initialized')
 
     try:
-        promptSet, totalPrompts, totalImages = generatePrompts()   # get prompts
-        generateImages()   # generate images
-        
-        printFinalStats(promptCount-1, imageGeneratedCount, totalImages, startTime)   # print final stats
+        # generation
+        userInput = input('Start generation? (y/n): ')
+        if userInput.lower() == 'y':
+            promptSet, totalPrompts, totalImages = generatePrompts()   # get prompts
+            generateImages()   # generate images
+            printFinalGenerationStats(promptCount-1, imageGeneratedCount, totalImages, startTime)   # print final stats
+
+        # segmentation
+        userInput = input('Start segmentating? (y/n): ')
+        if userInput.lower() == 'y':
+            segmentateImages()
+
         
     except Exception as e:
         logging.error('Error: %s', e)
@@ -231,10 +350,10 @@ if __name__ == '__main__':
         logging.error('Error: %s', e.with_traceback)
         logging.error('Error: %s', e.with_traceback())
         
-        printFinalStats(promptCount, imageGeneratedCount, totalImages, startTime)
+        printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime)
 
     except KeyboardInterrupt as e:
         logging.error('KeyboardInterrupt: %s', e)
 
         logging.info('exiting...')
-        printFinalStats(promptCount, imageGeneratedCount, totalImages, startTime)
+        printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime)

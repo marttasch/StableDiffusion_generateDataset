@@ -62,13 +62,13 @@ class APIHandler:
         return save_path, response
     
     # sam
-    def call_sam_predict_api(self, decoded_image, prompt):
+    def call_sam_predict_api(self, decoded_image, samModelName="sam_vit_h_4b8939.pth", dinoEnabled=False, dinoPrompt="", dino_model_name="GroundingDINO_SwinT_OGC (694MB)"):
         payload_sam = {
-            "sam_model_name": "sam_vit_h_4b8939.pth",
+            "sam_model_name": samModelName,
             "input_image": decoded_image,
-            "dino_enabled": True,
-            "dino_model_name": "GroundingDINO_SwinT_OGC (694MB)",
-            "dino_text_prompt": prompt,
+            "dino_enabled": dinoEnabled,
+            "dino_model_name": dino_model_name,
+            "dino_text_prompt": dinoPrompt,
             "dino_box_threshold": 0.3,
             "dino_preview_checkbox": False,
             }

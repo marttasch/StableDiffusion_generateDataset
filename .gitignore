@@ -7,6 +7,8 @@
 
 **.png
 
+secrets.yml
+
 # === Default === 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,6 +5,8 @@ import time
 import src.A1111_api.A1111_api as sdwebui
 import src.genPrompt.genPrompt as genPrompt
 
+import src.gotify as gotify
+
 import logging
 
 # ===== Config =====
@@ -99,18 +101,24 @@ imageCount = 1
 imageGeneratedCount = [0, 0, 0]
 
 # === Functions ===
-def printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime):
+def get_TimeElapsed(startTime):
     endTime = time.time()
     timeElapsed = endTime - startTime
     hours, remainder = divmod(timeElapsed, 3600)
     minutes, seconds = divmod(remainder, 60)
+
+    timeElapsedStr = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
+    return timeElapsedStr
+
+def printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime):
+    timeElapsedStr = get_TimeElapsed(startTime)
     
     print('')
     logging.info('== Generation complete! ==')
     logging.info('Prompt count: %s', promptCount)
     logging.info('Images generated: %s', imageGeneratedCount)
     logging.info('Total images: %s', totalImages)
-    logging.info('Time elapsed: %s', "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+    logging.info('Time elapsed: %s', timeElapsedStr)
 
 
 def generatePrompts():
@@ -317,6 +325,8 @@ def segmentateImages():
     logging.info('Segmentate Class: dirty (3/3)')
     segmentate(dirtyFolder)
 
+def sendGotifyMessage(title, message, priority=7):
+    gotify.send_message(title, message, priority)
     
     
 
@@ -336,10 +346,25 @@ if __name__ == '__main__':
             generateImages()   # generate images
             printFinalGenerationStats(promptCount-1, imageGeneratedCount, totalImages, startTime)   # print final stats
 
+            # send message
+            timeElapsed = get_TimeElapsed(startTime)
+            sendGotifyMessage(
+                title=f'Dataset-Generation complete ({datasetName})',
+                message=f'Prompt count: {promptCount-1}\nImages generated: {imageGeneratedCount}\nTotal images: {totalImages}\nTime elapsed: {timeElapsed}'
+            )
+
         # segmentation
         userInput = input('Start segmentating? (y/n): ')
         if userInput.lower() == 'y':
             segmentateImages()
+
+            # send message
+            timeElapsed = get_TimeElapsed(startTime)
+            sendGotifyMessage(
+                title=f'Dataset-Segmentation complete ({datasetName})',
+                message=f'Images segmentated in {timeElapsed}'
+            )
+
 
         
     except Exception as e:

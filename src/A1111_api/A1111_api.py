@@ -1,8 +1,6 @@
 from datetime import datetime
-import urllib.request
 import requests
 import base64
-import json
 import time
 import os
 

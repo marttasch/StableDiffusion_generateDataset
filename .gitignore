@@ -5,6 +5,7 @@
 **/image_generation_output/
 **/genPrompt/output
 **/trainingOutput/
+**/prompts/
 
 **.png
 

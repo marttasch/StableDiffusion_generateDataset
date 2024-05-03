@@ -16,6 +16,7 @@ import logging
 datasetName = 'urinal_testing'
 promptConfigFile = './prompt_config.json'
 
+splitRatio = [0.7, 0.2, 0.1]   # train, test, val
 
 # ----- only change below if necessary -----
 datasetOutputFolder = 'datasets'   # folder to save training datasets
@@ -300,7 +301,7 @@ def segmentate(classFolder):
                 api.decode_and_save_base64(img, save_path)
 
         # masks
-        fileName = os.path.basename(image).split('.')[0] + '-onlymask'
+        fileName = os.path.basename(image).split('.')[0] + '-binarymask'
         if safeOutputImagesPerImage == 1:
             save_path = os.path.join(out_dir, (fileName + f'_{useOutputImageIndex}.png'))
             api.decode_and_save_base64(masks[useOutputImageIndex], save_path)
@@ -344,28 +345,37 @@ def segmentateImages():
     logging.info('Segmentate Class: dirty (3/3)')
     segmentate(dirtyFolder)
 
-def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=None, splitRatio=[0.7, 0.2, 0.1]):
+def createTrainingDataset(folder, datasetName, filterPrefix, outputFolder=None, splitRatio=[0.7, 0.2, 0.1]):
     '''
         Create training dataset from generated/segmentated images
 
         Args:
             folder (str): folder containing images
-            filterPrefix (str): filter for imageType (e.g. 'blend', 'mask', 'output'), default=None
+            filterPrefix (str): filter for imageType (e.g. 'blended', 'masked', 'binarymask', 'original')
     '''
     logging.info("### Creating training dataset ###")
     logging.info("Folder: %s; FilterPrefix: %s", folder, filterPrefix)
+
+    ignore = []
+    if filterPrefix == 'original':
+        # ignore 'seg' subfolder
+        ignore = ['seg']
 
     # get classes from folder names inside the folder, then get all images from each class including subfolders
     classes = [d for d in os.listdir(folder) if os.path.isdir(os.path.join(folder, d))]
     logging.info('Classes: %s', classes)
 
     images = {}
-    filterPrefix = 'mask'
     # crawl through each class folder and get all images per class, including subfolders
     for c in classes:
         #images[c] = [os.path.join(folder, c, f) for f in os.listdir(os.path.join(folder, c)) if os.path.isfile(os.path.join(folder, c, f))]
         images[c] = []
         for root, dirs, files in os.walk(os.path.join(folder, c)):
+            # ignore subfolders
+            for i in ignore:
+                if i in dirs:
+                    dirs.remove(i)
+            # get images
             for file in files:
                 # filter for filterprefix and image file extensions
                 if file.endswith(('.jpg', '.jpeg', '.png')) and (filterPrefix in file):
@@ -373,7 +383,6 @@ def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=N
 
         # sort images by filename, 
         images[c].sort(key=lambda f: int(re.sub(r'\D', '', f)))
-        print(len(images[c]))
 
     # split images into train, test, val
     trainImages = {}
@@ -410,7 +419,7 @@ def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=N
                 os.makedirs(os.path.join(outputFolder, folder, c))
 
     # copy images
-    print('copy images...')
+    logging.info(f'Copy images to {outputFolder}...')
     for c in trainImages:
         for img in trainImages[c]:
             imgName = os.path.basename(img)
@@ -444,9 +453,12 @@ if __name__ == '__main__':
                                     ''')
     parser.add_argument('--datasetName', type=str, help='Name of the dataset')
     parser.add_argument('--promptConfigFile', type=str, help='Path to the prompt config file')
+    parser.add_argument('--generateDataset', type=str, help='Generate dataset (True/False)')
+    parser.add_argument('--segmentateImages', type=str, help='Segmentate images (True/False)')
+    parser.add_argument('--createTrainingDataset', type=str, help='Create training dataset (True/False)')
 
     args = parser.parse_args()
-    if args._get_args() == []:
+    if all(value is None for value in vars(args).values()):
         print('No arguments given. Using default values.')
         print(parser.print_help())
     if args.datasetName:
@@ -455,6 +467,17 @@ if __name__ == '__main__':
     if args.promptConfigFile:
         promptConfigFile = args.promptConfigFile
         print(f'Using prompt config file from cmd: {promptConfigFile}')
+    
+    print(f'Arguments: {args}')
+    print(f'DatasetName: {datasetName}')
+    print(f'PromptConfigFile: {promptConfigFile}')
+    print(f'GenerateDataset: {args.generateDataset}')
+    print(f'SegmentateImages: {args.segmentateImages}')
+    print(f'CreateTrainingDataset: {args.createTrainingDataset}')
+
+    if args.generateDataset == "True":
+        print('ARGUMENTS: generateDataset=True')
+
 
     # --- start ---
     print(f'\n=== Dataset Generation ===')
@@ -480,8 +503,10 @@ if __name__ == '__main__':
     
     try:
         # generation
-        userInput = input('Start generation? (y/n): ')
-        if userInput.lower() == 'y':
+        userInput = 'n'
+        if not args.generateDataset:
+            userInput = input('Start generation? (y/n): ')
+        if userInput.lower() == 'y' or args.generateDataset == "True":
             promptSet, totalPrompts, totalImages = generatePrompts()   # get prompts
             generateImages()   # generate images
             printFinalGenerationStats(promptCount-1, imageGeneratedCount, totalImages, startTime)   # print final stats
@@ -494,8 +519,10 @@ if __name__ == '__main__':
             )
 
         # segmentation
-        userInput = input('Start segmentating? (y/n): ')
-        if userInput.lower() == 'y':
+        userInput = 'n'
+        if not args.segmentateImages:
+            userInput = input('Start segmentating? (y/n): ')
+        if userInput.lower() == 'y' or args.segmentateImages == "True":
             segmentateImages()
             printFinalSegmentationStats(startTime)   # print final stats
 
@@ -504,6 +531,21 @@ if __name__ == '__main__':
             sendGotifyMessage(
                 title=f'Dataset-Segmentation complete ({datasetName})',
                 message=f'Images segmentated in {timeElapsed}'
+            )
+
+        # create training dataset
+        userInput = 'n'
+        if not args.createTrainingDataset:
+            userInput = input('Create training dataset? (y/n): ')
+        if userInput.lower() == 'y' or args.createTrainingDataset == "True":
+            createTrainingDataset(os.path.join(outputFolder, datasetName), datasetName, 'masked', outputFolder=None, splitRatio=splitRatio)
+            logging.info('Training dataset created')
+
+            # send message
+            timeElapsed = get_TimeElapsed(startTime)
+            sendGotifyMessage(
+                title=f'Training-Dataset created ({datasetName})',
+                message=f'Training dataset created in {timeElapsed}'
             )
         
     except Exception as e:

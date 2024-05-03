@@ -4,6 +4,7 @@
 **/api_out/
 **/image_generation_output/
 **/genPrompt/output
+**/trainingOutput/
 
 **.png
 

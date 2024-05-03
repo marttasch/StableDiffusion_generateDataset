@@ -8,5 +8,7 @@
     
 ## Installation
 - `pip install -r requirements.txt`
+. `pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
 - `cp secrets.yml.example secrets.yml`
+   - Fill in the secrets.yml with your API key and the URL of the API
 

@@ -12,5 +12,6 @@ gotify = Gotify(gotify_url, gotify_token)
 
 # == Functions ==
 def send_message(title, message, priority=5):
+    print(f"Sending Gotify message: {title} - {message}")
     gotify.create_message(title=title, message=message, priority=priority)
 

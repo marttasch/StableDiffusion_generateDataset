@@ -1,6 +1,8 @@
 import os
 import random
 import time
+import re
+import shutil
 
 import src.A1111_api.A1111_api as sdwebui
 import src.genPrompt.genPrompt as genPrompt
@@ -10,7 +12,7 @@ import src.gotify as gotify
 import logging
 
 # ===== Config =====
-datasetName = 'urinal_v3-testing'
+datasetName = 'urinal_v2'
 
 # segmentation
 segmentationOutputFolder = 'seg'
@@ -117,6 +119,13 @@ def printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, sta
     logging.info('Prompt count: %s', promptCount)
     logging.info('Images generated: %s', imageGeneratedCount)
     logging.info('Total images: %s', totalImages)
+    logging.info('Time elapsed: %s', timeElapsedStr)
+
+def printFinalSegmentationStats(startTime):
+    timeElapsedStr = get_TimeElapsed(startTime)
+    
+    print('')
+    logging.info('== Segmentation complete! ==')
     logging.info('Time elapsed: %s', timeElapsedStr)
 
 
@@ -280,7 +289,7 @@ def segmentate(classFolder):
                 api.decode_and_save_base64(img, save_path)
 
         # masks
-        fileName = os.path.basename(image).split('.')[0] + '-mask'
+        fileName = os.path.basename(image).split('.')[0] + '-onlymask'
         if safeOutputImagesPerImage == 1:
             save_path = os.path.join(out_dir, (fileName + f'_{useOutputImageIndex}.png'))
             api.decode_and_save_base64(masks[useOutputImageIndex], save_path)
@@ -324,18 +333,109 @@ def segmentateImages():
     logging.info('Segmentate Class: dirty (3/3)')
     segmentate(dirtyFolder)
 
+def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=None, splitRatio=[0.7, 0.2, 0.1]):
+    '''
+        Create training dataset from generated/segmentated images
+
+        Args:
+            folder (str): folder containing images
+            filterPrefix (str): filter for imageType (e.g. 'blend', 'mask', 'output'), default=None
+    '''
+    logging.info("### Creating training dataset ###")
+    logging.info("Folder: %s; FilterPrefix: %s", folder, filterPrefix)
+
+    # get classes from folder names inside the folder, then get all images from each class including subfolders
+    classes = [d for d in os.listdir(folder) if os.path.isdir(os.path.join(folder, d))]
+    logging.info('Classes: %s', classes)
+
+    images = {}
+    filterPrefix = 'mask'
+    # crawl through each class folder and get all images per class, including subfolders
+    for c in classes:
+        #images[c] = [os.path.join(folder, c, f) for f in os.listdir(os.path.join(folder, c)) if os.path.isfile(os.path.join(folder, c, f))]
+        images[c] = []
+        for root, dirs, files in os.walk(os.path.join(folder, c)):
+            for file in files:
+                # filter for filterprefix and image file extensions
+                if file.endswith(('.jpg', '.jpeg', '.png')) and (filterPrefix in file):
+                    images[c].append(os.path.join(root, file))
+
+        # sort images by filename, 
+        images[c].sort(key=lambda f: int(re.sub(r'\D', '', f)))
+        print(len(images[c]))
+
+    # split images into train, test, val
+    trainImages = {}
+    testImages = {}
+    valImages = {}
+    for c in classes:
+        totalImages = len(images[c])
+        trainCount = int(totalImages * splitRatio[0])
+        testCount = int(totalImages * splitRatio[1])
+        valCount = totalImages - trainCount - testCount
+
+        trainImages[c] = images[c][:trainCount]
+        testImages[c] = images[c][trainCount:trainCount+testCount]
+        valImages[c] = images[c][trainCount+testCount:]
+
+    # print table
+    print(f'{"class":<10} | {"train":<5} | {"test":<5} | {"val":<5}')
+    for c in trainImages:
+        print(f'{c:<10} | {len(trainImages[c]):<5} | {len(testImages[c]):<5} | {len(valImages[c]):<5}')
+    print('')
+
+    # move images to train, test, val folders
+    # create folder structure
+    if outputFolder is None:
+        outputFolder = os.path.join(os.getcwd(), 'trainingDatasets')
+    outputFolder = os.path.join(outputFolder, datasetName)
+    if not os.path.exists(outputFolder):
+        os.makedirs(outputFolder)
+    for folder in ['train', 'test', 'val']:
+        if not os.path.exists(os.path.join(outputFolder, folder)):
+            os.makedirs(os.path.join(outputFolder, folder))
+        for c in classes:
+            if not os.path.exists(os.path.join(outputFolder, folder, c)):
+                os.makedirs(os.path.join(outputFolder, folder, c))
+
+    # copy images
+    print('copy images...')
+    for c in trainImages:
+        for img in trainImages[c]:
+            imgName = os.path.basename(img)
+            imgPath = os.path.join(outputFolder, 'train', c, imgName)
+            shutil.copy(img, imgPath)
+    for c in testImages:
+        for img in testImages[c]:
+            imgName = os.path.basename(img)
+            imgPath = os.path.join(outputFolder, 'test', c, imgName)
+            shutil.copy(img, imgPath)
+    for c in valImages:
+        for img in valImages[c]:
+            imgName = os.path.basename(img)
+            imgPath = os.path.join(outputFolder, 'val', c, imgName)
+            shutil.copy(img, imgPath)
+
 def sendGotifyMessage(title, message, priority=7):
     gotify.send_message(title, message, priority)
     
-    
+
+# init APIHandler
+api = sdwebui.APIHandler()
+logging.info('APIHandler initialized')   
 
 # ====== Main ======
 if __name__ == '__main__':
     startTime = time.time()
 
-    # init APIHandler
-    api = sdwebui.APIHandler()
-    logging.info('APIHandler initialized')
+    # get arguments
+    import argparse
+    parser = argparse.ArgumentParser(description='Generate dataset')
+    parser.add_argument('--folder', type=str, help='Folder containing images')
+    args = parser.parse_args()
+
+    folder = args.folder
+    logging.info('Folder: %s', folder)
 
     try:
         # generation
@@ -356,6 +456,7 @@ if __name__ == '__main__':
         userInput = input('Start segmentating? (y/n): ')
         if userInput.lower() == 'y':
             segmentateImages()
+            printFinalSegmentationStats(startTime)   # print final stats
 
             # send message
             timeElapsed = get_TimeElapsed(startTime)
@@ -363,6 +464,14 @@ if __name__ == '__main__':
                 title=f'Dataset-Segmentation complete ({datasetName})',
                 message=f'Images segmentated in {timeElapsed}'
             )
+
+        # move files to final folder, take only masked images, split into train, test, val
+        userInput = input('Move files to final folder? (y/n): ')
+        if userInput.lower() == 'y':
+            print('Moving files to final folder...')
+            # move files to final folder
+            moveMaskedImagesToDatasetFolder(folder, outputFolder, datasetName)
+
 
 
         

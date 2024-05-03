@@ -3,6 +3,7 @@ import random
 import time
 import re
 import shutil
+import sys
 
 import src.A1111_api.A1111_api as sdwebui
 import src.genPrompt.genPrompt as genPrompt
@@ -12,7 +13,13 @@ import src.gotify as gotify
 import logging
 
 # ===== Config =====
-datasetName = 'urinal_v2'
+datasetName = 'urinal_testing'
+promptConfigFile = './prompt_config.json'
+
+
+# ----- only change below if necessary -----
+datasetOutputFolder = 'datasets'   # folder to save training datasets
+outputFolder = 'image_generation_output'   # folder to save generated images
 
 # segmentation
 segmentationOutputFolder = 'seg'
@@ -26,11 +33,11 @@ dinoPrompt = 'toilet'
 dinoModelName = 'GroundingDINO_SwinB (938MB)'   # GroundingDINO_SwinT_OGC (694MB), GroundingDINO_SwinB (938MB)
 
 # Generation
-maxGenerationCount = 10000
+maxGenerationCount = 2000   # max number of images to generate
 
 prompt = "puppy dog"   # default prompt, will be overwritten by genPrompt
 negative_prompt = "(semi-realistic,cgi,3d,render,sketch,cartoon,drawing,anime),text,cropped,out of frame,cut off,(worst quality,low quality),jpeg artifacts,duplicate,(deformed),blurry,bad proportions,faucet,UnrealisticDream"
-seed = -1   # will be overwritten
+seed = -1   # will be overwritten with random seed
 steps = 20
 width = 512
 height = 512
@@ -66,42 +73,47 @@ payloadImg2img = {
         }
 # ==== END Config ====
 
-# Create output folders
-outputFolder = 'image_generation_output'
-if not os.path.exists(outputFolder):
-    os.makedirs(outputFolder)
-if not os.path.exists(os.path.join(outputFolder, datasetName)):
-    os.makedirs(os.path.join(outputFolder, datasetName))
-else:
-    # print Output folder already exists. Overwrite??
-    userInput = input(f'WARNING: Output folder {datasetName} already exists. Overwrite Files in this folder? (y/n): ')
-    if userInput.lower() != 'y':
-        print('Exiting...')
-        exit()
-if not os.path.exists(os.path.join(outputFolder, datasetName, 'clean')):
-    os.makedirs(os.path.join(outputFolder, datasetName, 'clean'))
-if not os.path.exists(os.path.join(outputFolder, datasetName, 'avgDirty')):
-    os.makedirs(os.path.join(outputFolder, datasetName, 'avgDirty'))
-if not os.path.exists(os.path.join(outputFolder, datasetName, 'dirty')):
-    os.makedirs(os.path.join(outputFolder, datasetName, 'dirty'))
-
-# Logging
-loggingPath = os.path.join(outputFolder, datasetName, 'log.txt')
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    handlers=[
-                        logging.FileHandler(loggingPath, mode='w'),
-                        logging.StreamHandler()
-                    ])
-
 # Variables
 promptCount = 1
 imageCount = 1
 imageGeneratedCount = [0, 0, 0]
 
 # === Functions ===
+def createFolders():
+    if not os.path.exists(outputFolder):
+        os.makedirs(outputFolder)
+    if not os.path.exists(os.path.join(outputFolder, datasetName)):
+        os.makedirs(os.path.join(outputFolder, datasetName))
+    else:
+        # print Output folder already exists. Overwrite??
+        userInput = input(f'WARNING: Output folder {datasetName} already exists. Overwrite Files in this folder? (y/n): ')
+        if userInput.lower() != 'y':
+            print('Exiting...')
+            exit()
+    if not os.path.exists(os.path.join(outputFolder, datasetName, 'clean')):
+        os.makedirs(os.path.join(outputFolder, datasetName, 'clean'))
+    if not os.path.exists(os.path.join(outputFolder, datasetName, 'avgDirty')):
+        os.makedirs(os.path.join(outputFolder, datasetName, 'avgDirty'))
+    if not os.path.exists(os.path.join(outputFolder, datasetName, 'dirty')):
+        os.makedirs(os.path.join(outputFolder, datasetName, 'dirty'))
+
+def initLogging():
+    loggingPath = os.path.join(outputFolder, datasetName, 'log.txt')
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(loggingPath, mode='w'),
+                            logging.StreamHandler()
+                        ])
+    
+def initSDAPI():
+    # init APIHandler
+    api = sdwebui.APIHandler()
+    logging.info('APIHandler initialized') 
+
+
 def get_TimeElapsed(startTime):
     endTime = time.time()
     timeElapsed = endTime - startTime
@@ -129,19 +141,18 @@ def printFinalSegmentationStats(startTime):
     logging.info('Time elapsed: %s', timeElapsedStr)
 
 
-def generatePrompts():
+def generatePrompts(configFile=promptConfigFile):
     print('')
     logging.info('### Generating prompts... ###')
-    promptSets = genPrompt.genPrompts(datasetName=datasetName, configFile='./src/genPrompt/config.json')
-    promptSet = promptSets['generic']
-    totalPrompts = len(promptSets['generic'])
+    promptSet = genPrompt.genPrompts(datasetName=datasetName, configFile=configFile)
+    totalPrompts = len(promptSet)
     totalImages = totalPrompts * 3
     logging.info('total prompts: %s', totalPrompts)
 
     # save promtSets as json
     with open(os.path.join(outputFolder, datasetName, 'prompts.json'), 'w') as f:
         import json
-        json.dump(promptSets, f, indent=4)
+        json.dump(promptSet, f, indent=4)
     with open(os.path.join(outputFolder, datasetName, 'prompts.txt'), 'w') as f:
         for prompt in promptSet:
             f.write(prompt['prompt'] + '\n')
@@ -387,7 +398,7 @@ def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=N
     # move images to train, test, val folders
     # create folder structure
     if outputFolder is None:
-        outputFolder = os.path.join(os.getcwd(), 'trainingDatasets')
+        outputFolder = os.path.join(os.getcwd(), datasetOutputFolder)
     outputFolder = os.path.join(outputFolder, datasetName)
     if not os.path.exists(outputFolder):
         os.makedirs(outputFolder)
@@ -418,25 +429,55 @@ def createTrainingDataset(folder, datasetName, outputFolder=None, filterPrefix=N
 
 def sendGotifyMessage(title, message, priority=7):
     gotify.send_message(title, message, priority)
-    
+      
 
-# init APIHandler
-api = sdwebui.APIHandler()
-logging.info('APIHandler initialized')   
+import argparse
 
 # ====== Main ======
 if __name__ == '__main__':
     startTime = time.time()
 
-    # get arguments
-    import argparse
-    parser = argparse.ArgumentParser(description='Generate dataset')
-    parser.add_argument('--folder', type=str, help='Folder containing images')
+    # --- parse arguments ---
+    parser = argparse.ArgumentParser(description= '''
+                                        Generate prompts using prompt-templates, generate datasets using A1111 SDWebUI API 
+                                        and segmentate images using A1111 SAM API.
+                                    ''')
+    parser.add_argument('--datasetName', type=str, help='Name of the dataset')
+    parser.add_argument('--promptConfigFile', type=str, help='Path to the prompt config file')
+
     args = parser.parse_args()
+    if args._get_args() == []:
+        print('No arguments given. Using default values.')
+        print(parser.print_help())
+    if args.datasetName:
+        datasetName = args.datasetName
+        print(f'Using dataset name from cmd: {datasetName}')
+    if args.promptConfigFile:
+        promptConfigFile = args.promptConfigFile
+        print(f'Using prompt config file from cmd: {promptConfigFile}')
 
-    folder = args.folder
-    logging.info('Folder: %s', folder)
+    # --- start ---
+    print(f'\n=== Dataset Generation ===')
+    # ask user if datasename is correct, if not, change it
+    userInput = input(f'Use dataset name "{datasetName}"? (y/n): ')
+    if userInput.lower() != 'y':
+        datasetName = input('Enter dataset name: ')
+    # create output folders
+    createFolders()
 
+    # ask user if promptConfigFile is correct, if not, change it
+    userInput = input(f'Use prompt config file "{promptConfigFile}"? (y/n): ')
+    if userInput.lower() != 'y':
+        promptConfigFile = input('Enter prompt config file: ')
+    # check if promptConfigFile exists
+    if not os.path.exists(promptConfigFile):
+        print(f'Error: promptConfigFile "{promptConfigFile}" not found!')
+        exit()
+    
+    # init
+    initLogging()
+    initSDAPI()
+    
     try:
         # generation
         userInput = input('Start generation? (y/n): ')
@@ -464,16 +505,6 @@ if __name__ == '__main__':
                 title=f'Dataset-Segmentation complete ({datasetName})',
                 message=f'Images segmentated in {timeElapsed}'
             )
-
-        # move files to final folder, take only masked images, split into train, test, val
-        userInput = input('Move files to final folder? (y/n): ')
-        if userInput.lower() == 'y':
-            print('Moving files to final folder...')
-            # move files to final folder
-            moveMaskedImagesToDatasetFolder(folder, outputFolder, datasetName)
-
-
-
         
     except Exception as e:
         logging.error('Error: %s', e)

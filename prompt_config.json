@@ -7,15 +7,8 @@
         "perspective": ["front view", "top view"],
         "viewpoints": ["close-up"],
         "seeds_per_prompt": 6,
-        "sets": [
-            {
-                "dataset_class": "generic",
-                "dirtiness": [""],
-                "LoRA": [""],
-                "prompts": [
-                    "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted"
-                ]
-            }
+        "prompts": [
+            "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted"
         ]
     }
 }

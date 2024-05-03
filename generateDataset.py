@@ -16,7 +16,9 @@ import logging
 datasetName = 'urinal_testing'
 promptConfigFile = './prompt_config.json'
 
+# prepare dataset
 splitRatio = [0.7, 0.2, 0.1]   # train, test, val
+filterPrefix = 'masked'   # filter for imageType (e.g. 'blended', 'masked', 'binarymask', 'original')
 
 # ----- only change below if necessary -----
 datasetOutputFolder = 'datasets'   # folder to save training datasets
@@ -538,7 +540,7 @@ if __name__ == '__main__':
         if not args.createTrainingDataset:
             userInput = input('Create training dataset? (y/n): ')
         if userInput.lower() == 'y' or args.createTrainingDataset == "True":
-            createTrainingDataset(os.path.join(outputFolder, datasetName), datasetName, 'masked', outputFolder=None, splitRatio=splitRatio)
+            createTrainingDataset(os.path.join(outputFolder, datasetName), datasetName, filterPrefix=filterPrefix, outputFolder=None, splitRatio=splitRatio)
             logging.info('Training dataset created')
 
             # send message

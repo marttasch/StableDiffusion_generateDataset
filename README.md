@@ -8,7 +8,13 @@
     
 ## Installation
 - `pip install -r requirements.txt`
-. `pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
+- check CUDA version with `nvcc --version`
+   - or use NVIDIA-Control-Panel -> Help -> System Information -> Components -> CUDA Driver Version
+- install torch and torchvision with the correct CUDA version
+   - CUDA 11.8: `pip3 install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118`
+   - CUDA 12.8: `pip3 install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu121`
+
+
 - `cp secrets.yml.example secrets.yml`
    - Fill in the secrets.yml with your API key and the URL of the API
 

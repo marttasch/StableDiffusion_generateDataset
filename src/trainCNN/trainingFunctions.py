@@ -40,14 +40,14 @@ def load_data(config, mean, std, root_dir, train_folder, test_folder): # Directo
   # data augmentation
   t_train = Compose([
                     #BoundingTransform(),
-                     transforms.Resize(target_size),
-                     transforms.ToTensor(),
-                     transforms.Normalize(mean, std),
-                     transforms.RandomHorizontalFlip(0.3),
-                     transforms.RandomRotation(degrees=15),
-                     transforms.Grayscale(3),
-                    # transforms.GaussianBlur(kernel_size=3),
-                    #transforms.RandomCrop(size=(180, 180)
+                    transforms.Resize(target_size),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomRotation(degrees=30),
+                    transforms.Grayscale(3),
+                    transforms.GaussianBlur(kernel_size=3),
+                    #transforms.RandomCrop(size=(224, 224), padding=4),
                      ])
 
   t_test = Compose([transforms.Resize(target_size),

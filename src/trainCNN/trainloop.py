@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 
 # --- Function for Trainloop ---
-def trainloop(model, config, device, class_names, train_set, test_set, tensorboard):
+def trainloop(model, config, device, class_names, train_set, test_set, tensorboard, output_folder):
     model = model.to(device)
 
     # --- init ---
@@ -85,7 +85,8 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         #if epoch % 4 == 0:
         #  torch.save(model.state_dict(), "./model.pth")
 
-        torch.save(model.state_dict(), "./model.pth")
+        if epoch % config['safe_model_intervall'] == 0:
+            torch.save(model.state_dict(), output_folder + f"/model_{epoch}.pth")
 
         train_accuracy.reset()
         train_recall.reset()
@@ -99,7 +100,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         epoch_loss_test = np.mean(epoch_loss_test)
 
         # Write Tensor Board
-        tensorboard.write_board(epoch, epoch_loss_train, train_acc, train_rec, train_pre, epoch_loss_test, test_acc, test_rec, test_pre, tensorboard.session_id)
+        tensorboard.write_board(epoch, epoch_loss_train, train_acc, train_rec, train_pre, epoch_loss_test, test_acc, test_rec, test_pre)
 
         # -- print epoch summary --
         print(f"Epoch {str(epoch).zfill(3)}")

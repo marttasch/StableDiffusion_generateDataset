@@ -7,10 +7,12 @@ import sys
 
 import src.A1111_api.A1111_api as sdwebui
 import src.genPrompt.genPrompt as genPrompt
+from src.mts_utils import *
 
 import src.gotify as gotify
 
 import logging
+import argparse
 
 # ===== Config =====
 datasetName = 'urinal_testing'
@@ -115,16 +117,6 @@ def initSDAPI():
     # init APIHandler
     api = sdwebui.APIHandler()
     logging.info('APIHandler initialized') 
-
-
-def get_TimeElapsed(startTime):
-    endTime = time.time()
-    timeElapsed = endTime - startTime
-    hours, remainder = divmod(timeElapsed, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    timeElapsedStr = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds)
-    return timeElapsedStr
 
 def printFinalGenerationStats(promptCount, imageGeneratedCount, totalImages, startTime):
     timeElapsedStr = get_TimeElapsed(startTime)
@@ -441,8 +433,6 @@ def createTrainingDataset(folder, datasetName, filterPrefix, outputFolder=None, 
 def sendGotifyMessage(title, message, priority=7):
     gotify.send_message(title, message, priority)
       
-
-import argparse
 
 # ====== Main ======
 if __name__ == '__main__':

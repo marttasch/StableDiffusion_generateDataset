@@ -5,6 +5,7 @@ from uuid import uuid4 as uu
 import shutil
 import os
 from tensorboard import program
+import subprocess
 
 
 class TensorBoard:
@@ -15,13 +16,15 @@ class TensorBoard:
 
     def init_tensorboard(self):
         self.gen_session_id()
-        #self.start_tensorboard()
+        self.launch_tensorboard()
 
-    def start_tensorboard(self):
-        tb = program.TensorBoard()
-        tb.configure(argv=[None, '--logdir', self.tensor_board_root])
-        url = tb.launch()
-        print(f'TensorBoard started at {url}')
+    def launch_tensorboard(self):
+        print('launch tensorboard')
+      
+        tensorboard_command = ["tensorboard", "--logdir", self.tensor_board_root]
+        cmd = f"start cmd /k {' '.join(tensorboard_command)}"
+        print(f"\nExecuting command: {cmd}")
+        os.system(cmd)
 
     def gen_session_id(self) -> str:
         day = str(datetime.date.today().day).rjust(2, '0')
@@ -34,7 +37,7 @@ class TensorBoard:
         return self.session_id
 
 
-    def write_board(self, epoch: int, train_loss: int, train_accuracy, train_recall, train_precision, test_loss, test_accuracy, test_recall, test_precision, session_id):
+    def write_board(self, epoch: int, train_loss: int, train_accuracy, train_recall, train_precision, test_loss, test_accuracy, test_recall, test_precision):
       
         # Calc metric and add scalars
         self.writer.add_scalars(f'Loss/{self.session_id}', {'Train': train_loss, 'Test': test_loss}, epoch)

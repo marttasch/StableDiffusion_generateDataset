@@ -5,8 +5,8 @@ import re
 import shutil
 import sys
 
-import src.A1111_api.A1111_api as sdwebui
-import src.genPrompt.genPrompt as genPrompt
+import src.A1111_api as sdwebui
+import src.genPrompt as genPrompt
 from src.mts_utils import *
 
 import src.gotify as gotify

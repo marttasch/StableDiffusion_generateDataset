@@ -55,20 +55,6 @@ datasetsFolder = 'datasets'
 outputFolder = 'trainingOutput'
 # ==================
 
-def init_logging(loggingPath):
-    print(f"Logging path: {loggingPath}")
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(loggingPath, mode='w'),
-                            logging.StreamHandler()
-                        ])
-
-# init loggger
-loggingPath = os.path.join(outputFolder, 'training.log')
-init_logging(loggingPath)
-
 
 # main function
 def main():
@@ -165,6 +151,7 @@ def main():
         output_folder=outputFolder,
         mean=mean,
         std=std,
+        datasetName=datasetName,
         tensorboard=tensorboard,
         logging=logging
         )
@@ -176,15 +163,22 @@ def printFinalStats(starttime):
 if __name__ == "__main__":
     # --- Paths ---
     training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    outputFolder = os.path.join(os.getcwd(), outputFolder, training_id)
+    outputFolder = os.path.join(os.getcwd(), outputFolder, f'{training_id}_{datasetName}_{pretrainedModel}')
     if not os.path.exists(outputFolder):
-        logging.info(f"Create output folder: {outputFolder}")
+        print(f"Create output folder: {outputFolder}")
         os.makedirs(outputFolder)
 
-    # --- Logger ---
+    # --- init Logger ---
     loggingPath = os.path.join(outputFolder, 'training.log')
-    init_logging(loggingPath)
-
+    print(f"Logging path: {loggingPath}")
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(loggingPath, mode='w'),
+                            logging.StreamHandler()
+                        ])
+    
     # --- Argument Parser ---
     logging.info("Parse arguments...")
     parser = argparse.ArgumentParser(description='Train a CNN model')
@@ -222,7 +216,16 @@ if __name__ == "__main__":
         logging.error("KeyboardInterrupt. Exit program")
         printFinalStats(starttime)
         exit()
-    
+else:
+    loggingPath = os.path.join(outputFolder, 'training.log')
+    print(f"Logging path: {loggingPath}")
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(loggingPath, mode='w'),
+                            logging.StreamHandler()
+                        ])
     
 
 

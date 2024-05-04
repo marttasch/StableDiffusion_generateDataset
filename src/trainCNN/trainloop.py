@@ -9,7 +9,7 @@ import os
 import json
 
 # --- Function for Trainloop ---
-def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, tensorboard  , logging):
+def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, datasetName, tensorboard  , logging):
     model = model.to(device)
 
     # --- init ---
@@ -21,6 +21,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
     # --- Log ---
     log = {}
+    log['dataset'] = datasetName
     log['config'] = config
     log['class_names'] = class_names
     log['training_set'] = [str(train_set)]
@@ -39,6 +40,10 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         'mode': (lr_scheduler.mode if hasattr(lr_scheduler, 'mode') else None),  # ReduceLROnPlateau
     }
     log['criterion'] = criterion.__class__.__name__
+
+    # epoch log
+    epoch_log = {}
+
 
     # --- Write Log ---
     with open(os.path.join(output_folder, 'log.json'), 'w') as f:
@@ -69,9 +74,10 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         # Logging
         epoch_loss_train, epoch_loss_test = [], []    # store loss for each epoch
         current_learning_rate = optimizer.param_groups[0]['lr']
-        print(f"Epoch {str(epoch).zfill(3)}")
-        print(f"Learning Rate: {current_learning_rate}")
-        print(f"Start Time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print('')
+        logging.info(f"Epoch {str(epoch).zfill(3)}")
+        logging.info(f"Learning Rate: {current_learning_rate}")
+        logging.info(f"Start Time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
         # --- Training ---
@@ -162,8 +168,8 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
             torch.save(model.state_dict(), os.path.join(output_folder, f'best_model.pth'))
             log['best_model'] = {
                 'epoch': epoch,
-                'accuracy': test_acc,
-                'loss': best_test_loss
+                'accuracy': str(test_acc),
+                'loss': str(epoch_loss_test),
             }
             logging.info(f'Best model saved at epoch {epoch}.')
             early_stopping_counter = 0  # Reset early stopping counter
@@ -184,9 +190,35 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         logging.info(f"Epoch Time: {epoch_time}")
         logging.info(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
         logging.info(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
-        logging.info('')
+
+        # epoch log
+        epoch_log[epoch] = {
+            'metrics': {
+                'train_loss': str(epoch_loss_train.item()),
+                'test_loss': str(epoch_loss_test.item()),
+                'train_acc': str(train_acc.item()),
+                'test_acc': str(test_acc.item()),
+                'train_recall': str(train_rec.item()),
+                'test_recall': str(test_rec.item()),
+                'train_precision': str(train_pre.item()),
+                'test_precision': str(test_pre.item()),
+                'time': str(epoch_time),
+            },
+            'hyperparameters': {
+                'learning_rate': current_learning_rate,
+            }
+        }
+        # write epoch log to json
+        with open(os.path.join(output_folder, 'epoch_log.json'), 'w') as f:
+            json.dump(epoch_log, f, indent=4)
+
+        # -- write log to json --
+        log['finished_epochs'] = epoch
+        with open(os.path.join(output_folder, 'log.json'), 'w') as f:
+            json.dump(log, f, indent=4)
+
 
         # --- Update lr sheduler ---
-        lr_scheduler.step()
+        lr_scheduler.step(epoch_loss_test if hasattr(lr_scheduler, 'step') else None)
 
     tensorboard.writer.flush()

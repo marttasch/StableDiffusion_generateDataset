@@ -9,13 +9,13 @@ import os
 import json
 
 # --- Function for Trainloop ---
-def trainloop(model, config, device, class_names, train_set, test_set, tensorboard, output_folder, mean, std):
+def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, tensorboard  , logging):
     model = model.to(device)
 
     # --- init ---
     optimizer = torch.optim.Adam(model.parameters(), config['lr'])
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-    #lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3, verbose=True)
+    #lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
     criterion = torch.nn.CrossEntropyLoss()
     tensorboard.init_tensorboard()
 
@@ -32,8 +32,11 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
     log['optimizer'] = optimizer.__class__.__name__
     log['lr_scheduler'] = {
         'name': lr_scheduler.__class__.__name__,
-        'step_size': lr_scheduler.step_size,
-        'gamma': lr_scheduler.gamma
+        'step_size': (lr_scheduler.step_size if hasattr(lr_scheduler, 'step_size') else None),  # StepLR
+        'gamma': (lr_scheduler.gamma if hasattr(lr_scheduler, 'gamma') else None),  # StepLR
+        'factor': (lr_scheduler.factor if hasattr(lr_scheduler, 'factor') else None),  # ReduceLROnPlateau
+        'patience': (lr_scheduler.patience if hasattr(lr_scheduler, 'patience') else None),  # ReduceLROnPlateau
+        'mode': (lr_scheduler.mode if hasattr(lr_scheduler, 'mode') else None),  # ReduceLROnPlateau
     }
     log['criterion'] = criterion.__class__.__name__
 
@@ -87,7 +90,6 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
 
             # -- update metrics --
             t_a = train_accuracy(preds, labels)
-            #print(t_a)
             train_recall(preds, labels)
             train_precision(preds, labels)
 
@@ -121,23 +123,6 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         test_rec = test_recall.compute()
         test_pre = test_precision.compute()
 
-        # -- confusion matrix --
-        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(preds, dim=1).cpu().numpy())
-        tensorboard.write_confusion_matrix(epoch, cm)
-
-        # -- parameter histogram --
-        tensorboard.write_parameter_histogram(model, epoch)
-
-        #if epoch % 4 == 0:
-        #  torch.save(model.state_dict(), "./model.pth")
-
-        # -- save model --
-        modelsPath = os.path.join(output_folder, 'models')
-        if epoch % config['safe_model_intervall'] == 0:
-            if not os.path.exists(modelsPath):
-                os.makedirs(modelsPath)
-            torch.save(model.state_dict(), modelsPath + f"/model_{epoch}.pth")
-
         # -- reset metrics --
         train_accuracy.reset()
         train_recall.reset()
@@ -150,34 +135,56 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         epoch_loss_train = np.mean(epoch_loss_train)
         epoch_loss_test = np.mean(epoch_loss_test)
 
+        # --- Tensorboard ---
         # -- write to tensorboard --
         current_learning_rate = optimizer.param_groups[0]['lr']
         tensorboard.write_board(epoch, epoch_loss_train, train_acc, train_rec, train_pre, epoch_loss_test, test_acc, test_rec, test_pre, current_learning_rate)
 
-        # -- print epoch summary --
-        end_time = datetime.datetime.now()  # Record end time of epoch
-        epoch_time = end_time - start_time  # Calculate epoch time
+        # -- confusion matrix --
+        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(preds, dim=1).cpu().numpy())
+        tensorboard.write_confusion_matrix(epoch, cm)
 
-        # Logging
-        print(f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Epoch Time: {epoch_time}")
-        print(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
-        print(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
-        print()
+        # -- parameter histogram --
+        tensorboard.write_parameter_histogram(model, epoch)
+
+        # -- save model --
+        modelsPath = os.path.join(output_folder, 'models')
+        if config['safe_model_epoch'] != 0:   # if safe_model_epoch is not 0
+            if epoch % config['safe_model_epoch'] == 0:   # save model after x epochs
+                if not os.path.exists(modelsPath):
+                    os.makedirs(modelsPath)
+                torch.save(model.state_dict(), modelsPath + f"/model_{epoch}.pth")
 
         # --- Early Stopping ---
         # Update best validation loss and save model if validation loss improved
-        if epoch_loss_test < best_test_loss:
+        if epoch_loss_test < best_test_loss and config['safe_best_model']:   # Save best model if validation loss improved and save_best_model is enabled
             best_test_loss = epoch_loss_test
-            torch.save(model.state_dict(), os.path.join(output_folder, 'best_model.pth'))
+            torch.save(model.state_dict(), os.path.join(output_folder, f'best_model.pth'))
+            log['best_model'] = {
+                'epoch': epoch,
+                'accuracy': test_acc,
+                'loss': best_test_loss
+            }
+            logging.info(f'Best model saved at epoch {epoch}.')
             early_stopping_counter = 0  # Reset early stopping counter
         else:
             early_stopping_counter += 1
 
         # Check for early stopping
         if early_stopping_counter >= patience:
-            print(f'Early stopping at epoch {epoch} as validation loss did not improve for {patience} epochs.')
+            logging.info(f'Early stopping at epoch {epoch} as validation loss did not improve for {patience} epochs.')
             break
+
+        # --- Logging ---
+        # -- print epoch summary --
+        end_time = datetime.datetime.now()  # Record end time of epoch
+        epoch_time = end_time - start_time  # Calculate epoch time
+
+        logging.info(f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Epoch Time: {epoch_time}")
+        logging.info(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
+        logging.info(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
+        logging.info('')
 
         # --- Update lr sheduler ---
         lr_scheduler.step()

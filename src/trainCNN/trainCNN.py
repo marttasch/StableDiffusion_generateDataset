@@ -1,18 +1,19 @@
 ### General ###
-import datetime
-import numpy as np
 import os
 import sys
-import random
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1" # For better debugging
-import matplotlib.pyplot as plt
 import argparse
+import datetime
+import logging
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1" # For better debugging
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # disable onednn for tensorflow
 
 ### Custom ###
 # import from ../mts_utils.py
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mts_utils import *
-
 import trainingFunctions as trainingFunctions
 import trainloop as trainloop
 import tensorboardHandler as tensorboard
@@ -33,18 +34,6 @@ from torch.utils.tensorboard import SummaryWriter
 from uuid import uuid4 as uu
 import shutil
 
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # disable onednn for tensorflow
-
-# init loggger
-import logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    handlers=[
-                        #logging.FileHandler(loggingPath, mode='w'),
-                        logging.StreamHandler()
-                    ])
-
 
 # ===== CONFIG =====
 # Define the config
@@ -54,7 +43,8 @@ config = {  # Hyperparameter
     "epochs": 100,
     "patience": 6,   # early stopping
     "target_size": (512, 512),
-    'safe_model_intervall': 1,
+    'safe_model_epoch': 0,   # save model after x epochs, 0 = off
+    'safe_best_model': True,  # save best model
 }
 datasetName = 'urinal_v2'
 pretrainedModel = 'resnet50'  # resnet50, inception_v3
@@ -65,16 +55,24 @@ datasetsFolder = 'datasets'
 outputFolder = 'trainingOutput'
 # ==================
 
+def init_logging(loggingPath):
+    print(f"Logging path: {loggingPath}")
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(loggingPath, mode='w'),
+                            logging.StreamHandler()
+                        ])
+
+# init loggger
+loggingPath = os.path.join(outputFolder, 'training.log')
+init_logging(loggingPath)
+
+
+# main function
 def main():
     global datasetName, pretrainedModel, modelSelection, datasetsFolder, outputFolder, config, tensorboard, device
-
-    # --- device GPU, if available
-    logging.info("Check for GPU...")
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
-    if torch.cuda.is_available():
-        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
-    else:
-        logging.info("Using CPU")
 
     # --- Paths ---
     # dataset path
@@ -90,17 +88,18 @@ def main():
         logging.error(f"Test folder not found: {test_folder}")
         exit()
 
-
     # output path
-    training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    outputFolder = os.path.join(os.getcwd(), outputFolder, training_id)
     tensor_board_root = os.path.join(outputFolder, 'tensorboard')
     save_model_folder = os.path.join(outputFolder, 'models')
 
-    if not os.path.exists(outputFolder):
-        logging.info(f"Create output folder: {outputFolder}")
-        os.makedirs(outputFolder)
 
+    # --- device GPU, if available
+    logging.info("Check for GPU...")
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    if torch.cuda.is_available():
+        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        logging.info("Using CPU")
 
     # --- mean and std ---
     logging.info("Calculate mean and std...")
@@ -113,7 +112,9 @@ def main():
     logging.info("Loading dataset...")
 
     train_set, test_set, class_names = trainingFunctions.load_data(config, mean, std, root_dir, train_folder, test_folder)   # load data
-    logging.info(f"Classes: {class_names}")
+    trainingFunctions.print_class_distribution(train_set, test_set, class_names)
+    
+    # display some images
     logging.info(f"Please check the displayed images. To continue close the image window.")
     trainingFunctions.display_images(train_set, num_images=5)   # display some images
 
@@ -152,14 +153,37 @@ def main():
     tensorboard = tensorboard.TensorBoard(tensor_board_root)
 
     # --- training loop ---
+    # start training loop
     logging.info("Start training loop...\n")
-    trainloop.trainloop(model, config, device, class_names, train_set, test_set, tensorboard, outputFolder, mean, std)   # start training loop
+    trainloop.trainloop(
+        model=model,
+        config=config,
+        device=device,
+        class_names=class_names,
+        train_set=train_set,
+        test_set=test_set, 
+        output_folder=outputFolder,
+        mean=mean,
+        std=std,
+        tensorboard=tensorboard,
+        logging=logging
+        )
 
 def printFinalStats(starttime):
     print(f"Time elapsed: {get_TimeElapsed(starttime)}")
     
 
 if __name__ == "__main__":
+    # --- Paths ---
+    training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    outputFolder = os.path.join(os.getcwd(), outputFolder, training_id)
+    if not os.path.exists(outputFolder):
+        logging.info(f"Create output folder: {outputFolder}")
+        os.makedirs(outputFolder)
+
+    # --- Logger ---
+    loggingPath = os.path.join(outputFolder, 'training.log')
+    init_logging(loggingPath)
 
     # --- Argument Parser ---
     logging.info("Parse arguments...")

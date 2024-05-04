@@ -5,6 +5,7 @@ import numpy as np
 import os
 import random 
 import matplotlib.pyplot as plt
+from prettytable import PrettyTable
 
 
 
@@ -84,3 +85,21 @@ def display_images(dataset, num_images=5):
 
   plt.tight_layout()
   plt.show()
+
+def print_class_distribution(train_set, test_set, class_names):
+  # Get the number of images per class in the training set
+  train_class_counts = {class_name: sum([label == i for label in train_set.targets]) for i, class_name in enumerate(class_names)}
+
+  # Get the number of images per class in the test set
+  test_class_counts = {class_name: sum([label == i for label in test_set.targets]) for i, class_name in enumerate(class_names)}
+
+  # Print the class distribution for the training set
+  print("Class Distribution's for Training and Test Set")
+  table = PrettyTable(["Class Name", "Number of Images (Train) / %", "Number of Images (Test) / %"])
+  for class_name in class_names:
+    num_images_train = train_class_counts[class_name]
+    percentage_train = num_images_train / len(train_set) * 100
+    num_images_test = test_class_counts[class_name]
+    percentage_test = num_images_test / len(test_set) * 100
+    table.add_row([class_name, f"{num_images_train} / {percentage_train:.2f}%", f"{num_images_test} / {percentage_test:.2f}%"])
+  print(table)

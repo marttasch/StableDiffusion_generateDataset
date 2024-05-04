@@ -37,7 +37,7 @@ class TensorBoard:
         return self.session_id
 
 
-    def write_board(self, epoch: int, train_loss: int, train_accuracy, train_recall, train_precision, test_loss, test_accuracy, test_recall, test_precision):
+    def write_board(self, epoch: int, train_loss: int, train_accuracy, train_recall, train_precision, test_loss, test_accuracy, test_recall, test_precision, current_learning_rate: float):
       
         # Calc metric and add scalars
         self.writer.add_scalars(f'Loss/{self.session_id}', {'Train': train_loss, 'Test': test_loss}, epoch)
@@ -47,5 +47,7 @@ class TensorBoard:
         self.writer.add_scalars(f'Recall/{self.session_id}', {'Train': train_recall, 'Test': test_recall}, epoch)
 
         self.writer.add_scalars(f'Precision/{self.session_id}', {'Train': train_precision, 'Test': test_precision}, epoch)
+
+        self.writer.add_scalar(f'Learning Rate/{self.session_id}', current_learning_rate, epoch)
 
         self.writer.flush()

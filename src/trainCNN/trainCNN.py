@@ -8,7 +8,10 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1" # For better debugging
 import matplotlib.pyplot as plt
 import argparse
 
-from src.mts_utils import *
+### Custom ###
+# import from ../mts_utils.py
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from mts_utils import *
 
 import trainingFunctions as trainingFunctions
 import trainloop as trainloop
@@ -47,6 +50,7 @@ config = {  # Hyperparameter
     "lr": 0.0015, # chooses a random value between 0.001 and 0.01
     "batch_size": 16, # chooses one of these integers for batch size
     "epochs": 100,
+    "patience": 6,   # early stopping
     "target_size": (512, 512),
     'safe_model_intervall': 1,
 }
@@ -146,7 +150,7 @@ def main():
     tensorboard = tensorboard.TensorBoard(tensor_board_root)
 
     # --- training loop ---
-    logging.info("Start training loop...")
+    logging.info("Start training loop...\n")
     trainloop.trainloop(model, config, device, class_names, train_set, test_set, tensorboard, outputFolder)   # start training loop
 
 def printFinalStats(starttime):
@@ -189,7 +193,7 @@ if __name__ == "__main__":
         logging.error("Exit program")
         exit()
     except KeyboardInterrupt:
-        logging.error("Exit program")
+        logging.error("KeyboardInterrupt. Exit program")
         printFinalStats(starttime)
         exit()
     

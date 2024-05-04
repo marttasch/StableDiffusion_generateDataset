@@ -7,6 +7,9 @@ import os
 from tensorboard import program
 import subprocess
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 class TensorBoard:
     def __init__(self, tensor_board_root: str):
@@ -50,4 +53,24 @@ class TensorBoard:
 
         self.writer.add_scalar(f'Learning Rate/{self.session_id}', current_learning_rate, epoch)
 
+        self.writer.flush()
+
+    def write_confusion_matrix(self, epoch: int, confusion_matrix):
+        # 2. Plot confusion matrix
+        # plt.figure(figsize=(8, 6))
+        # sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+        # plt.xlabel('Predicted')
+        # plt.ylabel('True')
+        # plt.title('Confusion Matrix')
+        # plt.show()
+
+        # # 3. Log confusion matrix to TensorBoard
+        # writer.add_figure('Confusion Matrix', plt.gcf(), global_step=epoch)
+
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(confusion_matrix, annot=True, fmt='d', cmap='Blues')
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.title('Confusion Matrix')
+        self.writer.add_figure('Confusion Matrix', plt.gcf(), global_step=epoch)
         self.writer.flush()

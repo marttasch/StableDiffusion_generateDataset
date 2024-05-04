@@ -1,6 +1,7 @@
 import torch
 from torchvision import models
 from torchmetrics.classification import MulticlassAccuracy, MulticlassRecall, MulticlassPrecision
+from sklearn.metrics import confusion_matrix
 from torch.utils.data import DataLoader
 import numpy as np
 import datetime
@@ -14,6 +15,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
     # --- init ---
     optimizer = torch.optim.Adam(model.parameters(), config['lr'])
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    #lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3, verbose=True)
     criterion = torch.nn.CrossEntropyLoss()
     tensorboard.init_tensorboard()
 
@@ -113,6 +115,10 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         test_acc = test_accuracy.compute()
         test_rec = test_recall.compute()
         test_pre = test_precision.compute()
+
+        # -- confusion matrix --
+        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(preds, dim=1).cpu().numpy())
+        tensorboard.write_confusion_matrix(epoch, cm)
 
         #if epoch % 4 == 0:
         #  torch.save(model.state_dict(), "./model.pth")

@@ -9,7 +9,7 @@ import os
 import json
 
 # --- Function for Trainloop ---
-def trainloop(model, config, device, class_names, train_set, test_set, tensorboard, output_folder):
+def trainloop(model, config, device, class_names, train_set, test_set, tensorboard, output_folder, mean, std):
     model = model.to(device)
 
     # --- init ---
@@ -23,6 +23,11 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
     log = {}
     log['config'] = config
     log['class_names'] = class_names
+    log['training_set'] = [str(train_set)]
+    log['test_set'] = [str(test_set)]
+    log['mean'] = [str(mean)]
+    log['std'] = [str(std)]
+    log['device'] = str(device)
     log['model'] = model.__class__.__name__
     log['optimizer'] = optimizer.__class__.__name__
     log['lr_scheduler'] = {

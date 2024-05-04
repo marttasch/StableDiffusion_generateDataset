@@ -33,6 +33,8 @@ from torch.utils.tensorboard import SummaryWriter
 from uuid import uuid4 as uu
 import shutil
 
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # disable onednn for tensorflow
+
 # init loggger
 import logging
 logging.basicConfig(level=logging.INFO,
@@ -151,7 +153,7 @@ def main():
 
     # --- training loop ---
     logging.info("Start training loop...\n")
-    trainloop.trainloop(model, config, device, class_names, train_set, test_set, tensorboard, outputFolder)   # start training loop
+    trainloop.trainloop(model, config, device, class_names, train_set, test_set, tensorboard, outputFolder, mean, std)   # start training loop
 
 def printFinalStats(starttime):
     print(f"Time elapsed: {get_TimeElapsed(starttime)}")

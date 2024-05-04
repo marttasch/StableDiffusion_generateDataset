@@ -120,6 +120,9 @@ def trainloop(model, config, device, class_names, train_set, test_set, tensorboa
         cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(preds, dim=1).cpu().numpy())
         tensorboard.write_confusion_matrix(epoch, cm)
 
+        # -- parameter histogram --
+        tensorboard.write_parameter_histogram(model, epoch)
+
         #if epoch % 4 == 0:
         #  torch.save(model.state_dict(), "./model.pth")
 

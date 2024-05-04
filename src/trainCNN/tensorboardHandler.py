@@ -56,16 +56,7 @@ class TensorBoard:
         self.writer.flush()
 
     def write_confusion_matrix(self, epoch: int, confusion_matrix):
-        # 2. Plot confusion matrix
-        # plt.figure(figsize=(8, 6))
-        # sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-        # plt.xlabel('Predicted')
-        # plt.ylabel('True')
-        # plt.title('Confusion Matrix')
-        # plt.show()
-
-        # # 3. Log confusion matrix to TensorBoard
-        # writer.add_figure('Confusion Matrix', plt.gcf(), global_step=epoch)
+        # log confusion matrix
 
         plt.figure(figsize=(8, 6))
         sns.heatmap(confusion_matrix, annot=True, fmt='d', cmap='Blues')
@@ -74,3 +65,13 @@ class TensorBoard:
         plt.title('Confusion Matrix')
         self.writer.add_figure('Confusion Matrix', plt.gcf(), global_step=epoch)
         self.writer.flush()
+
+    def write_parameter_histogram(self, model, epoch):
+        # log parameter distributions
+
+        for name, param in model.named_parameters():
+            plt.hist(param.flatten().detach().cpu().numpy(), bins=50, alpha=0.5, label=name)
+            plt.legend()
+            plt.title('Parameter Histograms')
+            self.writer.add_figure('Parameter Histograms', plt.gcf(), global_step=epoch)
+            self.writer.flush()

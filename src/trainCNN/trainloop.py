@@ -221,4 +221,9 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         # --- Update lr sheduler ---
         lr_scheduler.step(epoch_loss_test if hasattr(lr_scheduler, 'step') else None)
 
-    tensorboard.writer.flush()
+    # --- END training loop ---
+    # rename folder with "finished" at the end
+    os.rename(output_folder, output_folder + '_finished')
+
+    
+    tensorboard.writer.flush()   # flush tensorboard writer

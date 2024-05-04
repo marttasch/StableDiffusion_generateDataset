@@ -222,6 +222,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         lr_scheduler.step(epoch_loss_test if hasattr(lr_scheduler, 'step') else None)
 
     # --- END training loop ---
+
     # rename folder with "finished" at the end
     os.rename(output_folder, output_folder + '_finished')
 

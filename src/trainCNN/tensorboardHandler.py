@@ -20,6 +20,7 @@ class TensorBoard:
     def init_tensorboard(self):
         self.gen_session_id()
         self.launch_tensorboard()
+        self.create_launchTensorboard_script()
 
     def launch_tensorboard(self):
         print('launch tensorboard')
@@ -28,6 +29,12 @@ class TensorBoard:
         cmd = f"start cmd /k {' '.join(tensorboard_command)}"
         print(f"\nExecuting command: {cmd}")
         os.system(cmd)
+
+    def create_launchTensorboard_script(self):
+        # Create a script to launch tensorboard, place it in the tensorboard root
+        script = f"tensorboard --logdir {self.tensor_board_root}"
+        with open(os.path.join(self.tensor_board_root, 'launch_tensorboard.bat'), 'w') as f:
+            f.write(script)
 
     def gen_session_id(self) -> str:
         day = str(datetime.date.today().day).rjust(2, '0')

@@ -161,26 +161,6 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
                     os.makedirs(modelsPath)
                 torch.save(model.state_dict(), modelsPath + f"/model_{epoch}.pth")
 
-        # --- Early Stopping ---
-        # Update best validation loss and save model if validation loss improved
-        if epoch_loss_test < best_test_loss and config['safe_best_model']:   # Save best model if validation loss improved and save_best_model is enabled
-            best_test_loss = epoch_loss_test
-            torch.save(model.state_dict(), os.path.join(output_folder, f'best_model.pth'))
-            log['best_model'] = {
-                'epoch': epoch,
-                'accuracy': str(test_acc),
-                'loss': str(epoch_loss_test),
-            }
-            logging.info(f'Best model saved at epoch {epoch}.')
-            early_stopping_counter = 0  # Reset early stopping counter
-        else:
-            early_stopping_counter += 1
-
-        # Check for early stopping
-        if early_stopping_counter >= patience:
-            logging.info(f'Early stopping at epoch {epoch} as validation loss did not improve for {patience} epochs.')
-            break
-
         # --- Logging ---
         # -- print epoch summary --
         end_time = datetime.datetime.now()  # Record end time of epoch
@@ -217,6 +197,28 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         with open(os.path.join(output_folder, 'log.json'), 'w') as f:
             json.dump(log, f, indent=4)
 
+        tensorboard.plot_tensorboard_data()
+        logging.info(f"plotted tensorboard data for epoch {epoch}")
+
+        # --- Early Stopping ---
+        # Update best validation loss and save model if validation loss improved
+        if epoch_loss_test < best_test_loss and config['safe_best_model']:   # Save best model if validation loss improved and save_best_model is enabled
+            best_test_loss = epoch_loss_test
+            torch.save(model.state_dict(), os.path.join(output_folder, f'best_model.pth'))
+            log['best_model'] = {
+                'epoch': epoch,
+                'accuracy': str(test_acc),
+                'loss': str(epoch_loss_test),
+            }
+            logging.info(f'Best model saved at epoch {epoch}.')
+            early_stopping_counter = 0  # Reset early stopping counter
+        else:
+            early_stopping_counter += 1
+
+        # Check for early stopping
+        if early_stopping_counter >= patience:
+            logging.info(f'Early stopping at epoch {epoch} as validation loss did not improve for {patience} epochs.')
+            break
 
         # --- Update lr sheduler ---
         lr_scheduler.step(epoch_loss_test if hasattr(lr_scheduler, 'step') else None)

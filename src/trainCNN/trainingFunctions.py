@@ -104,7 +104,7 @@ def print_class_distribution(train_set, test_set, class_names):
     table.add_row([class_name, f"{num_images_train} / {percentage_train:.2f}%", f"{num_images_test} / {percentage_test:.2f}%"])
   print(table)
 
-def plot_metrics(metrics, title='Metrics', xlabel='Epoch', ylabel='Value', save_path='metrics_plot.png'):
+def plot_metrics(metrics, title='Metrics', xlabel='Epoch', ylabel='Value', output_path='./' ,output_name='metrics_plot'):
   # Create a figure and axis for plotting
   fig, ax = plt.subplots(figsize=(12, 8))
 
@@ -120,6 +120,7 @@ def plot_metrics(metrics, title='Metrics', xlabel='Epoch', ylabel='Value', save_
   # Add a legend
   ax.legend()
 
+  save_path = os.path.join(output_path, f'{output_name}.png')
   # Save the plot
   plt.tight_layout()
   plt.savefig(save_path)

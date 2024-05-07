@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # plot tensorboard metrics
-import os
 import matplotlib.pyplot as plt
-from tensorflow.python.summary.summary_iterator import summary_iterator
+from tensorboard.backend.event_processing import event_accumulator
+import pandas as pd
+import io
+import re
 
 
 class TensorBoard:
@@ -93,68 +95,128 @@ class TensorBoard:
 
 # ===== Plot TensorBoard Metrics =====
 
-
-    def extract_tensorboard_data(self, log_dir=None):
-        """
-        Extracts data from TensorBoard log files.
-
-        Args:
-        - log_dir (str): Path to the directory containing TensorBoard event files.
-
-        Returns:
-        - data (dict): Dictionary containing metric data {metric_name: [(step1, value1), (step2, value2), ...]}.
-        """
-        if log_dir is None:
-            log_dir = self.tensor_board_root
-        data = {}
-
-        for root, _, files in os.walk(log_dir):
+    def load_all_events(self, logdir=None):
+        if logdir is None:
+            logdir = self.tensor_board_root
+        accumulators = []
+        for root, dirs, files in os.walk(logdir):
             for file in files:
-                if file.startswith("events.out"):
-                    event_path = os.path.join(root, file)
-                    for event in summary_iterator(event_path):
-                        for value in event.summary.value:
-                            if value.tag not in data:
-                                data[value.tag] = []
-                            data[value.tag].append((event.step, value.simple_value))
-        return data
+                if file.startswith('events.out.tfevents'):
+                    path = os.path.join(root, file)
+                    type = root.split('_')[-1]
+                    ea = event_accumulator.EventAccumulator(path,
+                        size_guidance={
+                            event_accumulator.SCALARS: 0,
+                            event_accumulator.IMAGES: 0,
+                            event_accumulator.HISTOGRAMS: 0
+                        }
+                    )
+                    ea.Reload()
+                    accumulator = {
+                        'ea': ea,
+                        'path': path,
+                        'type': type
+                    }
+                    accumulators.append(accumulator)
+        return accumulators
 
+    def plot_tensorboard_data(self, logdir=None):
+        filter_images = True
+        image_tag_whitelist = ['confusion matrix']
 
-    def plot_tensorboard_metrics(self, log_dir=None, title='TensorBoard Metrics', xlabel='Step', ylabel='Value', save_path='tensorboard_plot'):
-        """
-        Extracts and plots TensorBoard metrics as images.
+        if logdir is None:
+            logdir = self.tensor_board_root
 
-        Args:
-        - log_dir (str): Path to the directory containing TensorBoard event files.
-        - title (str): Title of the plot.
-        - xlabel (str): Label for the x-axis.
-        - ylabel (str): Label for the y-axis.
-        - save_path (str): Path to save the plot as an image.
-        """
-        if log_dir is None:
-            log_dir = self.tensor_board_root
-        metric_data = self.extract_tensorboard_data(log_dir)
+        # Prepare directories for plots and images
+        plot_dir = os.path.join(logdir, 'plots')
+        image_dir = os.path.join(logdir, 'images')
+        os.makedirs(plot_dir, exist_ok=True)
+        os.makedirs(image_dir, exist_ok=True)
 
-        plot_types = ['accuracy', 'loss']
+        # Define the regex pattern
+        #pattern = r"^(\w+)_(\d{2}-\d{2}-\d{2})_(\d{2}-\d{2})_([a-f0-9]+)_(Train|Test)$"
+        pattern = r"^(.+)/(\d{2}-\d{2}-\d{2})_(\d{2}-\d{2})_([a-f0-9]+)$"
 
-        for plot_type in plot_types:
-            plt.figure(figsize=(12, 8))
-            lines_plotted = False
-            for metric, data in metric_data.items():
-                steps, values = zip(*data)
-                if plot_type in metric:
-                    if 'train' in metric:
-                        plt.plot(steps, values, label=metric)
-                        lines_plotted = True
-                    elif 'test' in metric:
-                        plt.plot(steps, values, label=metric, linestyle='dashed')
-                        lines_plotted = True
+        # Initialize the Event Accumulator with only scalars and images
+        accumulators = self.load_all_events(logdir)
 
-            if lines_plotted:
+        # Extract scalar data
+        metrics = {}
+        for accumulator in accumulators:
+            ea = accumulator['ea']
+            data_type = accumulator['type']
+            path = accumulator['path']
+
+            scalar_tags = ea.Tags()['scalars']
+            for tag in scalar_tags:
+                match = re.match(pattern, tag)
+                #print(f"\nTag: {tag}")
+                if match:
+                    metric_name, _, _, _ = match.groups()
+                    #print(f"Metric Name: {metric_name}, Type: {type}")
+                    if metric_name.lower() in ['accuracy', 'loss', 'recall', 'precision']:
+                        events = ea.Scalars(tag)
+                        values = [e.value for e in events]
+                        steps = [e.step for e in events]
+                        full_tag = f'{metric_name}_{data_type}'
+                        #full_tag = f'{metric_name}'
+                        metrics[full_tag] = pd.DataFrame({'Step': steps, 'Value': values})
+                    # print(f"Values: {metrics[full_tag]}")
+                    elif metric_name.lower() in ['learning rate']:
+                        events = ea.Scalars(tag)
+                        values = [e.value for e in events]
+                        steps = [e.step for e in events]
+                        full_tag = f'{metric_name}'
+                        metrics[full_tag] = pd.DataFrame({'Step': steps, 'Value': values})
+                    
+        print(f"\nExtracted metrics: {metrics.keys()}")
+
+        # Plot metrics
+        for metric in ['Accuracy', 'Loss', 'Recall', 'Precision']:
+            train_tag = f'{metric}_Train'
+            test_tag = f'{metric}_Test'
+            
+            if train_tag in metrics and test_tag in metrics:
+                plt.figure(figsize=(12, 6))
+                plt.plot(metrics[train_tag]['Step'], metrics[train_tag]['Value'], label='Train')
+                plt.plot(metrics[test_tag]['Step'], metrics[test_tag]['Value'], label='Test')
+                plt.title(f'{metric} over Training Steps')
+                plt.xlabel('Training Steps')
+                plt.ylabel(metric)
+                plt.grid(True)
+                # datapoints with label
+                for i, txt in enumerate(metrics[train_tag]['Value']):
+                    plt.annotate(f"{txt:.2f}", (metrics[train_tag]['Step'][i], metrics[train_tag]['Value'][i]), color='gray')
+                for i, txt in enumerate(metrics[test_tag]['Value']):
+                    plt.annotate(f"{txt:.2f}", (metrics[test_tag]['Step'][i], metrics[test_tag]['Value'][i]), color='gray')
+
                 plt.legend()
-            plt.title(f"{plot_type.title()} {title}")
-            plt.xlabel(xlabel)
-            plt.ylabel(ylabel)
-            plt.tight_layout()
-            plt.savefig(f"{save_path}_{plot_type}.png")
-            plt.close()
+                plt.savefig(os.path.join(plot_dir, f'{metric}_plot.png'))
+                plt.close()
+        
+        # extract images
+        images = {}
+        for accumulator in accumulators:
+            ea = accumulator['ea']
+            path = accumulator['path']
+            image_tags = ea.Tags()['images']
+            for tag in image_tags:
+                if filter_images:
+                    if tag.lower() in image_tag_whitelist:
+                        images[tag] = ea.Images(tag)
+                else:
+                    images[tag] = ea.Images(tag)
+
+            
+        print(f"\nExtracted images: {images.keys()}")
+
+        # Export images
+        for tag, image in images.items():
+            for i, img in enumerate(image):
+                img_data = io.BytesIO(img.encoded_image_string)
+                img = plt.imread(img_data)
+                plt.imshow(img)
+                plt.axis('off')
+                plt.title(tag)
+                plt.savefig(os.path.join(image_dir, f'{tag}_{i}.png'))
+                plt.close()

@@ -10,6 +10,11 @@ import subprocess
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# plot tensorboard metrics
+import os
+import matplotlib.pyplot as plt
+from tensorflow.python.summary.summary_iterator import summary_iterator
+
 
 class TensorBoard:
     def __init__(self, tensor_board_root: str):
@@ -82,3 +87,74 @@ class TensorBoard:
             plt.title('Parameter Histograms')
             self.writer.add_figure('Parameter Histograms', plt.gcf(), global_step=epoch)
             self.writer.flush()
+
+
+
+
+# ===== Plot TensorBoard Metrics =====
+
+
+    def extract_tensorboard_data(self, log_dir=None):
+        """
+        Extracts data from TensorBoard log files.
+
+        Args:
+        - log_dir (str): Path to the directory containing TensorBoard event files.
+
+        Returns:
+        - data (dict): Dictionary containing metric data {metric_name: [(step1, value1), (step2, value2), ...]}.
+        """
+        if log_dir is None:
+            log_dir = self.tensor_board_root
+        data = {}
+
+        for root, _, files in os.walk(log_dir):
+            for file in files:
+                if file.startswith("events.out"):
+                    event_path = os.path.join(root, file)
+                    for event in summary_iterator(event_path):
+                        for value in event.summary.value:
+                            if value.tag not in data:
+                                data[value.tag] = []
+                            data[value.tag].append((event.step, value.simple_value))
+        return data
+
+
+    def plot_tensorboard_metrics(self, log_dir=None, title='TensorBoard Metrics', xlabel='Step', ylabel='Value', save_path='tensorboard_plot'):
+        """
+        Extracts and plots TensorBoard metrics as images.
+
+        Args:
+        - log_dir (str): Path to the directory containing TensorBoard event files.
+        - title (str): Title of the plot.
+        - xlabel (str): Label for the x-axis.
+        - ylabel (str): Label for the y-axis.
+        - save_path (str): Path to save the plot as an image.
+        """
+        if log_dir is None:
+            log_dir = self.tensor_board_root
+        metric_data = self.extract_tensorboard_data(log_dir)
+
+        plot_types = ['accuracy', 'loss']
+
+        for plot_type in plot_types:
+            plt.figure(figsize=(12, 8))
+            lines_plotted = False
+            for metric, data in metric_data.items():
+                steps, values = zip(*data)
+                if plot_type in metric:
+                    if 'train' in metric:
+                        plt.plot(steps, values, label=metric)
+                        lines_plotted = True
+                    elif 'test' in metric:
+                        plt.plot(steps, values, label=metric, linestyle='dashed')
+                        lines_plotted = True
+
+            if lines_plotted:
+                plt.legend()
+            plt.title(f"{plot_type.title()} {title}")
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            plt.tight_layout()
+            plt.savefig(f"{save_path}_{plot_type}.png")
+            plt.close()

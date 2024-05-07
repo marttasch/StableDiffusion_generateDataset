@@ -37,7 +37,7 @@ class TensorBoard:
 
     def create_launchTensorboard_script(self):
         # Create a script to launch tensorboard, place it in the tensorboard root
-        script = f"tensorboard --logdir {self.tensor_board_root}"
+        script = f"tensorboard --logdir ."
         with open(os.path.join(self.tensor_board_root, 'launch_tensorboard.bat'), 'w') as f:
             f.write(script)
 

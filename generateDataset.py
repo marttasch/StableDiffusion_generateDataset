@@ -157,6 +157,14 @@ def generatePrompts(configFile=promptConfigFile):
 
     return promptSet, totalPrompts, totalImages
 
+def calculateTimeRemaining(imageCount, totalImages, startTime):
+    timeElapsed = time.time() - startTime
+    timePerImage = timeElapsed / imageCount
+    timeRemaining = (totalImages - imageCount) * timePerImage
+    timeRemainingStr = get_TimeElapsed(timeRemaining)
+    timeRemainingStr = "{:0>2}:{:0>2}:{:05.2f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
+    logging.info('Time remaining: %s', timeRemainingStr)
+
 def generateImages():
     # get global variables
     global promptCount
@@ -181,6 +189,8 @@ def generateImages():
             print('Exiting...')
             exit()
 
+    startTimeperImage = time.time()
+
     for prompt in promptSet:
         seed = random.randint(1000, 9999999999)
         # === CLEAN ===
@@ -190,6 +200,7 @@ def generateImages():
 
         # generate
         print('')
+        calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating clean image...')
         logging.info('Prompt: %s', payloadTxt2img['prompt'])
         logging.info('Seed: %s; Steps: %s', seed, steps)
@@ -203,6 +214,7 @@ def generateImages():
         imageCount += 1
         imageGeneratedCount[0] += 1
 
+
         # === avgDirty ===
         # make it slightly dirty, img2img
         promptImg2img = prompt['prompt'] + ', (stains), <lora:dirtyStyle_LoRA_v2-000008:0.3>'
@@ -214,6 +226,7 @@ def generateImages():
 
         # generate
         print('')
+        calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating slightly dirty image (img2img)...')
         logging.info('Prompt: %s', payloadImg2img['prompt'])
         logging.info('Seed: %s; Steps: %s', seed, steps)
@@ -235,6 +248,7 @@ def generateImages():
 
         # generate
         print('')
+        calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating dirty image (img2img)...')
         logging.info('Prompt: %s', payloadImg2img['prompt'])
         logging.info('Seed: %s; Steps: %s', seed, steps)
@@ -500,7 +514,8 @@ if __name__ == '__main__':
         if not args.generateDataset:
             userInput = input('Start generation? (y/n): ')
         if userInput.lower() == 'y' or args.generateDataset == "True":
-            promptSet, totalPrompts, totalImages = generatePrompts()   # get prompts
+            startTime = time.time()
+            promptSet, totalPrompts, totalImages = generatePrompts(configFile=promptConfigFile)  # get prompts
             generateImages()   # generate images
             printFinalGenerationStats(promptCount-1, imageGeneratedCount, totalImages, startTime)   # print final stats
 
@@ -516,6 +531,7 @@ if __name__ == '__main__':
         if not args.segmentateImages:
             userInput = input('Start segmentating? (y/n): ')
         if userInput.lower() == 'y' or args.segmentateImages == "True":
+            startTime = time.time()
             segmentateImages()
             printFinalSegmentationStats(startTime)   # print final stats
 
@@ -531,6 +547,7 @@ if __name__ == '__main__':
         if not args.createTrainingDataset:
             userInput = input('Create training dataset? (y/n): ')
         if userInput.lower() == 'y' or args.createTrainingDataset == "True":
+            startTime = time.time()
             createTrainingDataset(os.path.join(outputFolder, datasetName), datasetName, filterPrefix=filterPrefix, outputFolder=None, splitRatio=splitRatio)
             logging.info('Training dataset created')
 

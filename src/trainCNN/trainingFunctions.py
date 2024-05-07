@@ -7,8 +7,6 @@ import random
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 
-
-
 def calc_mean_and_std(train_folder):
     # Define the target size for resizing
     target_size = (224, 224)

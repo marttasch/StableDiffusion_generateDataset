@@ -115,6 +115,7 @@ def initLogging():
     
 def initSDAPI():
     # init APIHandler
+    global api
     api = sdwebui.APIHandler()
     logging.info('APIHandler initialized') 
 
@@ -175,7 +176,7 @@ def generateImages():
     # wait for user to load model to RAM
     userInput = 'n'
     while userInput.lower() != 'y':
-        userInput = input('SD Model loaded to RAM? [(y)es/(n)o/(e)nd]: ')
+        userInput = input('SD Model loaded to VRAM? [(y)es/(n)o/(e)nd]: ')
         if userInput.lower() == 'e':
             print('Exiting...')
             exit()
@@ -204,7 +205,7 @@ def generateImages():
 
         # === avgDirty ===
         # make it slightly dirty, img2img
-        promptImg2img = prompt['prompt'] + ', (stains), <lora:dirtyStyle_LoRA_v2-000008:0.35>'
+        promptImg2img = prompt['prompt'] + ', (stains), <lora:dirtyStyle_LoRA_v2-000008:0.3>'
         payloadImg2img['prompt'] = promptImg2img
         payloadImg2img['seed'] = seed
 
@@ -228,7 +229,7 @@ def generateImages():
 
         # === dirty ===
         # generate dirty image, img2img
-        promptImg2img = prompt['prompt'] + ', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:0.5>'
+        promptImg2img = prompt['prompt'] + ', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:0.45>'
         payloadImg2img['prompt'] = promptImg2img
         payloadImg2img['seed'] = seed
 

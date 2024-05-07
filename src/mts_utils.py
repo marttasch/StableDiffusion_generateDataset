@@ -2,7 +2,6 @@ import os
 import time
 
 def get_TimeElapsed(startTime):
-    startTime = startTime.timestamp()  # Convert startTime to float
     endTime = time.time()
     timeElapsed = endTime - startTime
     hours, remainder = divmod(timeElapsed, 3600)

@@ -43,7 +43,7 @@ maxGenerationCount = 2000   # max number of images to generate
 prompt = "puppy dog"   # default prompt, will be overwritten by genPrompt
 negative_prompt = "(semi-realistic,cgi,3d,render,sketch,cartoon,drawing,anime),text,cropped,out of frame,cut off,(worst quality,low quality),jpeg artifacts,duplicate,(deformed),blurry,bad proportions,faucet,UnrealisticDream"
 seed = -1   # will be overwritten with random seed
-steps = 20
+steps = 35
 width = 512
 height = 512
 cfg_scale = 7
@@ -162,9 +162,11 @@ def calculateTimeRemaining(imageCount, totalImages, startTime):
     timePerImage = timeElapsed / imageCount
     timeRemaining = (totalImages - imageCount) * timePerImage
     timeRemainingStr = get_TimeElapsed(timeRemaining)
-    timeRemainingStr = "{:0>2}:{:0>2}:{:05.2f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
-    logging.info('Time remaining: %s', timeRemainingStr)
-
+    timeRemainingStr = "{:0>2}:{:0>2}:{:05.0f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
+    timePerImageStr = "{:0>2}:{:05.2f}".format(int((timePerImage % 3600) // 60), (timePerImage % 60))
+    logging.info(f'Time per image: {timePerImageStr}; Time remaining: {timeRemainingStr}')
+    #progress bar
+   
 def generateImages():
     # get global variables
     global promptCount
@@ -203,7 +205,7 @@ def generateImages():
         calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating clean image...')
         logging.info('Prompt: %s', payloadTxt2img['prompt'])
-        logging.info('Seed: %s; Steps: %s', seed, steps)
+        logging.info('Seed: %s; Steps: %s', seed, payloadTxt2img['steps'])
 
         out_dir = os.path.join(outputFolder, datasetName, 'clean')
         fileName = datasetName + '-clean-' + str(promptCount)
@@ -229,7 +231,7 @@ def generateImages():
         calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating slightly dirty image (img2img)...')
         logging.info('Prompt: %s', payloadImg2img['prompt'])
-        logging.info('Seed: %s; Steps: %s', seed, steps)
+        logging.info('Seed: %s; Steps: %s', seed, payloadImg2img['steps'])
 
         out_dir = os.path.join(outputFolder, datasetName, 'avgDirty')
         fileName = datasetName + '-avgDirty-' + str(promptCount)
@@ -251,7 +253,7 @@ def generateImages():
         calculateTimeRemaining(imageCount, totalImages, startTimeperImage)
         logging.info(f'[{imageCount}/{totalImages}] Generating dirty image (img2img)...')
         logging.info('Prompt: %s', payloadImg2img['prompt'])
-        logging.info('Seed: %s; Steps: %s', seed, steps)
+        logging.info('Seed: %s; Steps: %s', seed, payloadImg2img['steps'])
 
 
         out_dir = os.path.join(outputFolder, datasetName, 'dirty')

@@ -217,7 +217,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
         # Check for early stopping
         if early_stopping_counter >= patience:
-            logging.info(f'Early stopping at epoch {epoch} as validation loss did not improve for {patience} epochs.')
+            logging.info(f'Early stopping at epoch {epoch} as test loss did not improve for {patience} epochs.')
             break
 
         # --- Update lr sheduler ---
@@ -227,6 +227,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
     # rename folder with "finished" at the end
     os.rename(output_folder, output_folder + '_finished')
+    logging.info(f"Training finished. Folder renamed to {output_folder}_finished")
 
     
     tensorboard.writer.flush()   # flush tensorboard writer

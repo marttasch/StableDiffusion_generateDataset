@@ -161,24 +161,6 @@ def printFinalStats(starttime):
     
 
 if __name__ == "__main__":
-    # --- Paths ---
-    training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    outputFolder = os.path.join(os.getcwd(), outputFolder, f'{training_id}_{datasetName}_{pretrainedModel}')
-    if not os.path.exists(outputFolder):
-        print(f"Create output folder: {outputFolder}")
-        os.makedirs(outputFolder)
-
-    # --- init Logger ---
-    loggingPath = os.path.join(outputFolder, 'training.log')
-    print(f"Logging path: {loggingPath}")
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(loggingPath, mode='w'),
-                            logging.StreamHandler()
-                        ])
-    
     # --- Argument Parser ---
     logging.info("Parse arguments...")
     parser = argparse.ArgumentParser(description='Train a CNN model')
@@ -203,9 +185,28 @@ if __name__ == "__main__":
     else:
         logging.info(f"using default model selection: {modelSelection}")
 
-    starttime = datetime.datetime.now()
+    # --- Paths ---
+    training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    trainMode = 'FT' if modelSelection == 1 else 'FE'
+    outputFolder = os.path.join(os.getcwd(), outputFolder, f'{training_id}_{datasetName}_{pretrainedModel}_{trainMode}')
+    if not os.path.exists(outputFolder):
+        print(f"Create output folder: {outputFolder}")
+        os.makedirs(outputFolder)
 
+    # --- init Logger ---
+    loggingPath = os.path.join(outputFolder, 'training.log')
+    print(f"Logging path: {loggingPath}")
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(loggingPath, mode='w'),
+                            logging.StreamHandler()
+                        ])
+    
+    # --- Start program ---
     try:
+        starttime = datetime.datetime.now()
         main()   # start main function
     except Exception as e:
         logging.error(f"Error: {e}")

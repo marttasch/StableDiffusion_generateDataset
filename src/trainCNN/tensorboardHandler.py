@@ -125,7 +125,8 @@ class TensorBoard:
         image_tag_whitelist = ['confusion matrix']
 
         if logdir is None:
-            logdir = self.tensor_board_root
+            # self.tensor_board_root, one level up, + 'images-plots'
+            logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
 
         # Prepare directories for plots and images
         plot_dir = os.path.join(logdir, 'plots')
@@ -186,9 +187,9 @@ class TensorBoard:
                 plt.grid(True)
                 # datapoints with label
                 for i, txt in enumerate(metrics[train_tag]['Value']):
-                    plt.annotate(f"{txt:.2f}", (metrics[train_tag]['Step'][i], metrics[train_tag]['Value'][i]), color='gray')
+                    plt.annotate(f"{txt:.3f}", (metrics[train_tag]['Step'][i], metrics[train_tag]['Value'][i]), color='gray')
                 for i, txt in enumerate(metrics[test_tag]['Value']):
-                    plt.annotate(f"{txt:.2f}", (metrics[test_tag]['Step'][i], metrics[test_tag]['Value'][i]), color='gray')
+                    plt.annotate(f"{txt:.3f}", (metrics[test_tag]['Step'][i], metrics[test_tag]['Value'][i]), color='gray')
 
                 plt.legend()
                 plt.savefig(os.path.join(plot_dir, f'{metric}_plot.png'))

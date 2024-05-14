@@ -226,8 +226,9 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     # --- END training loop ---
 
     # rename folder with "finished" at the end
-    os.rename(output_folder, output_folder + '_finished')
-    logging.info(f"Training finished. Folder renamed to {output_folder}_finished")
+    folderPraefix = f'_finished_EP-{epoch}_ACC-{test_acc:.4f}_LOSS-{epoch_loss_test:.4f}'
+    os.rename(output_folder, output_folder + folderPraefix)
+    logging.info(f"Training finished. Folder renamed to {output_folder}{folderPraefix}")
 
     
     tensorboard.writer.flush()   # flush tensorboard writer

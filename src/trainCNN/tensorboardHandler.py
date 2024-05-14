@@ -126,11 +126,12 @@ class TensorBoard:
 
         if logdir is None:
             # self.tensor_board_root, one level up, + 'images-plots'
-            logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
+            #logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
+            logdir = self.tensor_board_root
 
         # Prepare directories for plots and images
-        plot_dir = os.path.join(logdir, 'plots')
-        image_dir = os.path.join(logdir, 'images')
+        plot_dir = os.path.join(logdir, '..', 'images-plots', 'plots')
+        image_dir = os.path.join(logdir, '..', 'images-plots', 'images')
         os.makedirs(plot_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
 

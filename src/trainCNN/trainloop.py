@@ -9,7 +9,7 @@ import os
 import json
 
 # --- Function for Trainloop ---
-def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, datasetName, tensorboard  , logging):
+def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, datasetName, modelSelection, tensorboard  , logging):
     model = model.to(device)
 
     # --- init ---
@@ -30,6 +30,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     log['std'] = [str(std)]
     log['device'] = str(device)
     log['model'] = model.__class__.__name__
+    log['tuning_method'] = 'finetuning' if modelSelection == 1 else 'feature extraction'
     log['optimizer'] = optimizer.__class__.__name__
     log['lr_scheduler'] = {
         'name': lr_scheduler.__class__.__name__,
@@ -226,6 +227,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     # --- END training loop ---
 
     # rename folder with "finished" at the end
+    userInput = input("Training finished. Please close tensorboard and press enter to rename the folder.")
     folderPraefix = f'_finished_EP-{epoch}_ACC-{test_acc:.4f}_LOSS-{epoch_loss_test:.4f}'
     os.rename(output_folder, output_folder + folderPraefix)
     logging.info(f"Training finished. Folder renamed to {output_folder}{folderPraefix}")

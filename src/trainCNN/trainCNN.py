@@ -152,6 +152,7 @@ def main():
         mean=mean,
         std=std,
         datasetName=datasetName,
+        modelSelection=modelSelection,
         tensorboard=tensorboard,
         logging=logging
         )
@@ -162,7 +163,7 @@ def printFinalStats(starttime):
 
 if __name__ == "__main__":
     # --- Argument Parser ---
-    logging.info("Parse arguments...")
+    print("Start program...")
     parser = argparse.ArgumentParser(description='Train a CNN model')
     parser.add_argument('--dataset', type=str, help='Name of the dataset', required=False)
     parser.add_argument('--model', type=str, help='Name of the pretrained model', required=False)
@@ -171,19 +172,19 @@ if __name__ == "__main__":
 
     if args.dataset:
         datasetName = args.dataset
-        logging.info(f"Dataset: {datasetName}")
+        print(f"Dataset: {datasetName}")
     else:
-        logging.info(f"using default dataset: {datasetName}")
+        print(f"using default dataset: {datasetName}")
     if args.model:
         pretrainedModel = args.model
-        logging.info(f"Model: {pretrainedModel}")
+        print(f"Model: {pretrainedModel}")
     else:
-        logging.info(f"using default model: {pretrainedModel}")
+        print(f"using default model: {pretrainedModel}")
     if args.modelSelection:
         modelSelection = args.modelSelection
-        logging.info(f"Model selection: {modelSelection}")
+        print(f"Model selection: {'finetuning' if modelSelection == 1 else 'feature extraction'}")
     else:
-        logging.info(f"using default model selection: {modelSelection}")
+        print(f"using default model selection: {'finetuning' if modelSelection == 1 else 'feature extraction'}")
 
     # --- Paths ---
     training_id = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -206,7 +207,7 @@ if __name__ == "__main__":
     
     # --- Start program ---
     try:
-        starttime = datetime.datetime.now()
+        starttime = time.time()
         main()   # start main function
     except Exception as e:
         logging.error(f"Error: {e}")

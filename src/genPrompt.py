@@ -6,31 +6,30 @@ from itertools import product
 def generate_prompts_from_json(json_data, type="txt2img"):
     prompts = []
     
+    print(f"seeds_per_prompt: {json_data[type]['seeds_per_prompt']}")
     for prompt_template in json_data[type]["prompts"]:
-        for combination in product(
-            json_data[type]["object_names"],
-            json_data[type]["object_materials"],
-            json_data[type]["backgrounds"],
-            json_data[type]["perspective"],
-            json_data[type]["viewpoints"]
-        ):
-            object_name, object_material, background, perspective, viewpoint = combination
-            prompt = prompt_template.format(
-                object_name=object_name,
-                object_material=object_material,
-                background=background,
-                perspective=perspective,
-                viewpoint=viewpoint
-            )
+        print(f"prompt_template: {prompt_template}")
+
+        # Determine which variables are used in the prompt template
+        variables = ['object_names', 'object_materials', 'backgrounds', 'perspective', 'viewpoints']
+        used_variables = [var for var in variables if '{' + var[:-1] + '}' in prompt_template]
+        print(f"used_variables: {used_variables}")
+
+        for combination in product(*[json_data[type][var] for var in used_variables]):
+            print(f"combination: {combination}")
+
+            # Map the variables to their values
+            variable_values = dict(zip([var[:-1] for var in used_variables], combination))
+
+            # Format the prompt
+            prompt = prompt_template.format(**variable_values)
+
             for _ in range(json_data[type]["seeds_per_prompt"]):
+                # Append the prompt to the list
                 prompts.append({
                     "prompt": prompt,
                     "prompt_template": prompt_template,
-                    "object_name": object_name,
-                    "object_material": object_material,
-                    "background": background,
-                    "perspective": perspective,
-                    "viewpoint": viewpoint
+                    **variable_values
                 })
     return prompts
 
@@ -46,6 +45,7 @@ def genPrompts(datasetName=None, configFile='config.json', saveAsFile=False):
 
     # get prompts
     promptSets = generate_prompts_from_json(promptConfig, type="txt2img")
+    print(f"Generated {len(promptSets)} prompts")
 
     if saveAsFile:
         # save prompts to file

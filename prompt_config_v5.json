@@ -1,0 +1,17 @@
+{
+    "name": "urinalDataset_v5",
+    "txt2img": {
+        "object_names": ["urinal"],
+        "object_materials": ["white porcelain", "stainless steel", "ceramic" ],
+        "backgrounds": ["(white) tile wall", "gray tile wall",  "white wall", "gray wall", "colored tile wall", "colored wall"],
+        "perspective": ["front view", "top view", "from side"],
+        "viewpoints": ["close-up"],
+        "seeds_per_prompt": 1,
+        "prompts": [
+            "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted",
+            "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted, shadow cast",
+            "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted, soft light",
+            "{object_name}, a {object_material} {object_name} in a bathroom, {background}, wall mounted, reflection"
+        ]
+    }
+}

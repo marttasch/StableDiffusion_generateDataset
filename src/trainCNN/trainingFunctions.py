@@ -4,6 +4,7 @@ from torchvision.datasets import ImageFolder
 import numpy as np
 import os
 import random 
+import time
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 

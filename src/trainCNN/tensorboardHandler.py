@@ -171,7 +171,7 @@ class TensorBoard:
                         full_tag = f'{metric_name}'
                         metrics[full_tag] = pd.DataFrame({'Step': steps, 'Value': values})
                     
-        print(f"\nExtracted metrics: {metrics.keys()}")
+        #print(f"\nExtracted metrics: {metrics.keys()}")
 
         # Plot metrics
         for metric in ['Accuracy', 'Loss', 'Recall', 'Precision']:

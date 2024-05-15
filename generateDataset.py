@@ -165,7 +165,6 @@ def calculateTimeRemaining(imageCount, totalImages, startTime):
     timeRemainingStr = "{:0>2}:{:0>2}:{:05.0f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
     timePerImageStr = "{:0>2}:{:05.2f}".format(int((timePerImage % 3600) // 60), (timePerImage % 60))
     logging.info(f'Time per image: {timePerImageStr}; Time remaining: {timeRemainingStr}')
-    #progress bar
    
 def generateImages():
     # get global variables

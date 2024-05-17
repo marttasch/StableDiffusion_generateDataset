@@ -243,7 +243,7 @@ def generateImages():
 
         # === dirty ===
         # generate dirty image, img2img
-        promptImg2img = prompt['prompt'] + ', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:0.45>'
+        promptImg2img = prompt['prompt'] + ', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:0.4>'
         payloadImg2img['prompt'] = promptImg2img
         payloadImg2img['seed'] = seed
 

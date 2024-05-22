@@ -87,8 +87,17 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
             imgs, labels = imgs.to(device), labels.to(device)   # move data to device
 
             # -- forward pass --
-            preds = model(imgs)               # get predictions
-            loss_train = criterion(preds, labels)   # calculate loss
+            outputs = model(imgs)               # get predictions
+
+            # Check if the model is Inception
+            if model.__class__.__name__ == 'Inception3':
+                main_outputs, aux_outputs = outputs   # Inception has two outputs
+                loss_train = criterion(main_outputs, labels) + 0.4 * criterion(aux_outputs, labels)   # calculate loss
+                metrics_outputs = main_outputs
+            else:
+                # For other models, there's only one output to compute the loss on
+                loss_train = criterion(outputs, labels)   # calculate loss
+                metrics_outputs = outputs
 
             # -- backward pass --
             optimizer.zero_grad()   # reset gradients
@@ -96,9 +105,9 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
             optimizer.step()       # update weights
 
             # -- update metrics --
-            t_a = train_accuracy(preds, labels)
-            train_recall(preds, labels)
-            train_precision(preds, labels)
+            t_a = train_accuracy(metrics_outputs, labels)
+            train_recall(metrics_outputs, labels)
+            train_precision(metrics_outputs, labels)
 
             epoch_loss_train.append(loss_train.item())   # store loss
 
@@ -110,13 +119,13 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
                 imgs, labels = imgs.to(device), labels.to(device)   # move data to device
 
                 # -- forward pass --
-                preds = model(imgs)
-                loss_test = criterion(preds, labels)
+                outputs = model(imgs)
+                loss_test = criterion(outputs, labels)
 
                 # -- update metrics --
-                test_accuracy(preds, labels)
-                test_recall(preds, labels)
-                test_precision(preds, labels)
+                test_accuracy(outputs, labels)
+                test_recall(outputs, labels)
+                test_precision(outputs, labels)
 
                 epoch_loss_test.append(loss_test.item())   # store loss
 
@@ -148,7 +157,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         tensorboard.write_board(epoch, epoch_loss_train, train_acc, train_rec, train_pre, epoch_loss_test, test_acc, test_rec, test_pre, current_learning_rate)
 
         # -- confusion matrix --
-        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(preds, dim=1).cpu().numpy())
+        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(outputs, dim=1).cpu().numpy())
         tensorboard.write_confusion_matrix(epoch, cm)
 
         # -- parameter histogram --

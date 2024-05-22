@@ -175,12 +175,24 @@ if __name__ == "__main__":
         print(f"Dataset: {datasetName}")
     else:
         print(f"using default dataset: {datasetName}")
+
     if args.model:
         pretrainedModel = args.model
+        if pretrainedModel not in ['resnet50', 'inception_v3']:
+            print(f"Pretrained model not correct, please use: resnet50, inception_v3")
+            # print help
+            parser.print_help()
+            exit()
         print(f"Model: {pretrainedModel}")
     else:
         print(f"using default model: {pretrainedModel}")
+
     if args.modelSelection:
+        if args.modelSelection not in [1, 2]:
+            print(f"Model selection not correct, please use: 1 = finetuning, 2 = feature extraction")
+            # print help    
+            parser.print_help()
+            exit()
         modelSelection = args.modelSelection
         print(f"Model selection: {'finetuning' if modelSelection == 1 else 'feature extraction'}")
     else:

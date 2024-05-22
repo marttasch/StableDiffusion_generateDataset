@@ -152,6 +152,9 @@ def generatePrompts(configFile=promptConfigFile):
     with open(os.path.join(outputFolder, datasetName, 'prompts.txt'), 'w') as f:
         for prompt in promptSet:
             f.write(prompt['prompt'] + '\n')
+    # save promptconfig file
+    shutil.copyfile(configFile, os.path.join(outputFolder, datasetName, 'prompt_config.json'))
+    
     logging.info('Prompts written to %s', os.path.join(outputFolder, datasetName, 'prompts.json'))
     logging.info('Prompts written to %s', os.path.join(outputFolder, datasetName, 'prompts.txt'))
 

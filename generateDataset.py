@@ -103,8 +103,15 @@ def createFolders():
         os.makedirs(os.path.join(outputFolder, datasetName, 'dirty'))
 
 def initLogging():
+    # check if log file exists, if yes, move to numbered backup like log_1.txt
     loggingPath = os.path.join(outputFolder, datasetName, 'log.txt')
+    if os.path.exists(loggingPath):
+        i = 1
+        while os.path.exists(os.path.join(outputFolder, datasetName, f'log_{i}.txt')):
+            i += 1
+        shutil.move(loggingPath, os.path.join(outputFolder, datasetName, f'log_{i}.txt'))
 
+    # init logging
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
@@ -154,7 +161,7 @@ def generatePrompts(configFile=promptConfigFile):
             f.write(prompt['prompt'] + '\n')
     # save promptconfig file
     shutil.copyfile(configFile, os.path.join(outputFolder, datasetName, 'prompt_config.json'))
-    
+
     logging.info('Prompts written to %s', os.path.join(outputFolder, datasetName, 'prompts.json'))
     logging.info('Prompts written to %s', os.path.join(outputFolder, datasetName, 'prompts.txt'))
 
@@ -165,7 +172,7 @@ def calculateTimeRemaining(imageCount, totalImages, startTime):
     timePerImage = timeElapsed / imageCount
     timeRemaining = (totalImages - imageCount) * timePerImage
     timeRemainingStr = get_TimeElapsed(timeRemaining)
-    timeRemainingStr = "{:0>2}:{:0>2}:{:05.0f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
+    timeRemainingStr = "{:0>2}:{:0>2}:{:05.2f}".format(int(timeRemaining // 3600), int((timeRemaining % 3600) // 60), (timeRemaining % 60))
     timePerImageStr = "{:0>2}:{:05.2f}".format(int((timePerImage % 3600) // 60), (timePerImage % 60))
     logging.info(f'Time per image: {timePerImageStr}; Time remaining: {timeRemainingStr}')
    
@@ -271,7 +278,7 @@ def generateImages():
         imageCount += 1
         imageGeneratedCount[2] += 1
 
-def segmentate(classFolder):
+def segmentate(classFolder, ):
 
     # create output folder
     out_dir = os.path.join(classFolder, segmentationOutputFolder)
@@ -285,8 +292,10 @@ def segmentate(classFolder):
 
     # segmentate images
     imageCount = 1
+    startTime = time.time()
     for image in images:
         logging.info(f'Segmentating image [{imageCount}/{totalImages}]: {image}')
+        calculateTimeRemaining(imageCount, totalImages, startTime)
         decoded_image = api.encode_file_to_base64(image)
         msg, blended_images, masks, masked_images = api.call_sam_predict_api(decoded_image=decoded_image, samModelName=samModelName, dinoEnabled=dinoEnabled, dinoPrompt=dinoPrompt, dino_model_name=dinoModelName)
         

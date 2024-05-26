@@ -11,7 +11,7 @@ def generate_prompts_from_json(json_data, type="txt2img"):
         #print(f"prompt_template: {prompt_template}")
 
         # Determine which variables are used in the prompt template
-        variables = ['object_names', 'object_materials', 'backgrounds', 'perspective', 'viewpoints']
+        variables = ['object_names', 'object_materials', 'backgrounds', 'perspectives', 'viewpoints']
         used_variables = [var for var in variables if '{' + var[:-1] + '}' in prompt_template]
         #print(f"used_variables: {used_variables}")
 

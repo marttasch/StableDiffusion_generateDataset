@@ -9,7 +9,7 @@ import src.A1111_api as sdwebui
 import src.genPrompt as genPrompt
 from src.mts_utils import *
 
-import src.gotify as gotify
+import gotifyHandler as gotifyHandler
 
 import logging
 import argparse
@@ -18,9 +18,12 @@ import argparse
 datasetName = 'urinal_testing'
 promptConfigFile = './prompt_config.json'
 
+# generate dataset
+loraWeights = [0, 0.4, 0.5]
+
 # prepare dataset
 splitRatio = [0.7, 0.2, 0.1]   # train, test, val
-filterPrefix = 'masked'   # filter for imageType (e.g. 'blended', 'masked', 'binarymask', 'original')
+filterPrefix = 'original'   # filter for imageType (e.g. 'blended', 'masked', 'binarymask', 'original')
 
 # ----- only change below if necessary -----
 datasetOutputFolder = 'datasets'   # folder to save training datasets
@@ -228,7 +231,7 @@ def generateImages():
 
         # === avgDirty ===
         # make it slightly dirty, img2img
-        promptImg2img = prompt['prompt'] + ', (stains), <lora:dirtyStyle_LoRA_v2-000008:0.3>'
+        promptImg2img = prompt['prompt'] + f', (stains), <lora:dirtyStyle_LoRA_v2-000008:{loraWeights[1]}>'
         payloadImg2img['prompt'] = promptImg2img
         payloadImg2img['seed'] = seed
 
@@ -253,7 +256,7 @@ def generateImages():
 
         # === dirty ===
         # generate dirty image, img2img
-        promptImg2img = prompt['prompt'] + ', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:0.4>'
+        promptImg2img = prompt['prompt'] + f', (dirty, stains), <lora:dirtyStyle_LoRA_v2-000008:{loraWeights[2]}>'
         payloadImg2img['prompt'] = promptImg2img
         payloadImg2img['seed'] = seed
 
@@ -400,8 +403,9 @@ def createTrainingDataset(folder, datasetName, filterPrefix, outputFolder=None, 
             # get images
             for file in files:
                 # filter for filterprefix and image file extensions
-                if file.endswith(('.jpg', '.jpeg', '.png')) and (filterPrefix in file):
-                    images[c].append(os.path.join(root, file))
+                if file.endswith(('.jpg', '.jpeg', '.png')):
+                    if (filterPrefix == 'original') or (filterPrefix in file):
+                        images[c].append(os.path.join(root, file))
 
         # sort images by filename, 
         images[c].sort(key=lambda f: int(re.sub(r'\D', '', f)))
@@ -459,7 +463,7 @@ def createTrainingDataset(folder, datasetName, filterPrefix, outputFolder=None, 
             shutil.copy(img, imgPath)
 
 def sendGotifyMessage(title, message, priority=7):
-    gotify.send_message(title, message, priority)
+    gotifyHandler.send_message(title, message, priority)
       
 
 # ====== Main ======

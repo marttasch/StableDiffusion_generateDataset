@@ -14,6 +14,7 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # disable onednn for tensorflow
 # import from ../mts_utils.py
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mts_utils import *
+import gotifyHandler as gotify
 import trainingFunctions as trainingFunctions
 import trainloop as trainloop
 import tensorboardHandler as tensorboard
@@ -33,6 +34,8 @@ from torch._C import TensorType
 from torch.utils.tensorboard import SummaryWriter
 from uuid import uuid4 as uu
 import shutil
+
+import traceback
 
 
 # ===== CONFIG =====
@@ -223,7 +226,23 @@ if __name__ == "__main__":
         main()   # start main function
     except Exception as e:
         logging.error(f"Error: {e}")
+        traceback.print_exc()
         printFinalStats(starttime)
+
+        # write error to file
+        with open(os.path.join(outputFolder, 'error.txt'), 'w') as f:
+            traceback.print_exc(file=f)
+            f.write('\n\n')
+            traceback.print_stack(file=f)
+        logging.info("Error written to file: error.txt")
+
+        # send gotify message
+        gotify.send_message(
+            title='Error in CNN training',
+            message=f"""Error {e}""",
+            priority=10
+        )
+
         logging.error("Exit program")
         exit()
     except KeyboardInterrupt:

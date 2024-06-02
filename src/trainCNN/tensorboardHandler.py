@@ -210,7 +210,7 @@ class TensorBoard:
                     images[tag] = ea.Images(tag)
 
             
-        print(f"\nExtracted images: {images.keys()}")
+        #print(f"\nExtracted images: {images.keys()}")
 
         # Export images
         for tag, image in images.items():

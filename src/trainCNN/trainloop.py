@@ -7,7 +7,12 @@ import numpy as np
 import datetime
 import os
 import json
+import sys
 
+import gotifyHandler as gotify
+from mts_utils import *
+
+      
 # --- Function for Trainloop ---
 def trainloop(model, config, device, class_names, train_set, test_set, output_folder, mean, std, datasetName, modelSelection, tensorboard  , logging):
     model = model.to(device)
@@ -68,18 +73,16 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     early_stopping_counter = 0  # Initialize early stopping counter
 
     # --- Training Loop ---
-    startTime = datetime.datetime.now()
+    startTime = time.time()  # Record start time of training loop
     for epoch in range(config['epochs']):
-        start_time = datetime.datetime.now()  # Record start time of epoch
+        epoch_start_time = time.time()  # Record start time of epoch
+
+        print('')
+        logging.info(f"Epoch {str(epoch).zfill(3)}")
         
         # Logging
         epoch_loss_train, epoch_loss_test = [], []    # store loss for each epoch
         current_learning_rate = optimizer.param_groups[0]['lr']
-        print('')
-        logging.info(f"Epoch {str(epoch).zfill(3)}")
-        logging.info(f"Learning Rate: {current_learning_rate}")
-        logging.info(f"Start Time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-
 
         # --- Training ---
         for imgs, labels in train_loader:
@@ -151,6 +154,8 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         epoch_loss_train = np.mean(epoch_loss_train)
         epoch_loss_test = np.mean(epoch_loss_test)
 
+        #print(f"epoch_loss_train_mean: {epoch_loss_train}")
+
         # --- Tensorboard ---
         # -- write to tensorboard --
         current_learning_rate = optimizer.param_groups[0]['lr']
@@ -161,7 +166,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         tensorboard.write_confusion_matrix(epoch, cm)
 
         # -- parameter histogram --
-        tensorboard.write_parameter_histogram(model, epoch)
+        #tensorboard.write_parameter_histogram(model, epoch)
 
         # -- save model --
         modelsPath = os.path.join(output_folder, 'models')
@@ -173,10 +178,8 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
         # --- Logging ---
         # -- print epoch summary --
-        end_time = datetime.datetime.now()  # Record end time of epoch
-        epoch_time = end_time - start_time  # Calculate epoch time
+        epoch_time = get_TimeElapsed(epoch_start_time)
 
-        logging.info(f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info(f"Epoch Time: {epoch_time}")
         logging.info(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
         logging.info(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
@@ -208,7 +211,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
             json.dump(log, f, indent=4)
 
         tensorboard.plot_tensorboard_data()
-        logging.info(f"plotted tensorboard data for epoch {epoch}")
+        #logging.info(f"plotted tensorboard data for epoch {epoch}")
 
         # --- Early Stopping ---
         # Update best validation loss and save model if validation loss improved
@@ -233,13 +236,41 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         # --- Update lr sheduler ---
         lr_scheduler.step(epoch_loss_test if hasattr(lr_scheduler, 'step') else None)
 
-    # --- END training loop ---
-
-    # rename folder with "finished" at the end
-    userInput = input("Training finished. Please close tensorboard and press enter to rename the folder.")
-    folderPraefix = f'_finished_EP-{epoch}_ACC-{test_acc:.4f}_LOSS-{epoch_loss_test:.4f}'
-    os.rename(output_folder, output_folder + folderPraefix)
-    logging.info(f"Training finished. Folder renamed to {output_folder}{folderPraefix}")
-
-    
+    # --------------------------------
+    # ------- END training loop ------
+    # --------------------------------
     tensorboard.writer.flush()   # flush tensorboard writer
+
+    # send gotify message
+    gotify.send_message(
+        title='CNN Training finished',
+        message=f"""Finished {epoch} epochs in {get_TimeElapsed(startTime)}. \nBest model at epoch {log['best_model']['epoch']} with accuracy {log['best_model']['accuracy']} and loss {log['best_model']['loss']}.""",
+        priority=7
+    )
+
+    # ---- Rename Folder ----
+    # rename folder with "finished" at the end
+    bestEpoch = log['best_model']['epoch']
+    bestAcc = log['best_model']['accuracy']
+    bestLoss = log['best_model']['loss']
+
+    folderPraefix = f'_finished_EP-{bestEpoch}_ACC-{float(bestAcc):.4f}_LOSS-{float(bestLoss):.4f}'
+
+    # write finished file
+    with open(os.path.join(output_folder, f'finished_EP-{bestEpoch}_ACC-{bestAcc}_LOSS-{bestLoss}.txt'), 'w') as f:
+        f.write('Training finished.')
+        f.write(f'Epochs: {epoch}')
+        f.write(f'Best Epoch: {bestEpoch}')
+        f.write(f'Best Accuracy: {bestAcc}')
+        f.write(f'Best Loss: {bestLoss}')
+
+    userInput = input("Training finished. Please close tensorboard and press enter to rename the folder.")
+
+    while True:
+        try:
+            os.rename(output_folder, output_folder + folderPraefix)
+            logging.info(f"Training finished. Folder renamed to {output_folder}{folderPraefix}")
+            break
+        except Exception as e:
+            logging.error(f"Error renaming folder: {e}")
+            userInput = input("Error renaming folder. Please close any open files in the folder and press enter to try again.")

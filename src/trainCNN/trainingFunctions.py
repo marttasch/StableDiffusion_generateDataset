@@ -43,11 +43,14 @@ def load_data(config, mean, std, root_dir, train_folder, test_folder): # Directo
                     transforms.Resize(target_size),
                     transforms.ToTensor(),
                     transforms.Normalize(mean, std),
-                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomHorizontalFlip(p=0.5),
                     transforms.RandomRotation(degrees=30),
-                    transforms.Grayscale(3),
+                    transforms.RandomErasing(p=0.3, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False),
+                    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+                    transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
                     transforms.GaussianBlur(kernel_size=3),
-                    #transforms.RandomCrop(size=(224, 224), padding=4),
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
+                    #transforms.Grayscale(num_output_channels=3),
                      ])
 
   t_test = Compose([transforms.Resize(target_size),
@@ -124,3 +127,5 @@ def plot_metrics(metrics, title='Metrics', xlabel='Epoch', ylabel='Value', outpu
   plt.tight_layout()
   plt.savefig(save_path)
   plt.show()
+
+  

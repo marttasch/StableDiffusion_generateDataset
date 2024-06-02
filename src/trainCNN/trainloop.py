@@ -11,6 +11,7 @@ import sys
 
 import gotifyHandler as gotify
 from mts_utils import *
+import prettytable as pt
 
       
 # --- Function for Trainloop ---
@@ -180,9 +181,17 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         # -- print epoch summary --
         epoch_time = get_TimeElapsed(epoch_start_time)
 
-        logging.info(f"Epoch Time: {epoch_time}")
-        logging.info(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
-        logging.info(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
+        #logging.info(f"Epoch Time: {epoch_time}")
+        #logging.info(f"TRAIN\t loss: {epoch_loss_train:.4f} \t acc: {train_acc * 100:.4f}")
+        #logging.info(f"TEST\t loss: {epoch_loss_test:.4f} \t acc: {test_acc * 100:.4f}")
+
+        # pretty table
+        tableEpochMetrics = pt.PrettyTable()
+        tableEpochMetrics.field_names = ["", "Loss", "Accuracy", "Recall", "Precision"]
+        tableEpochMetrics.add_row(["Train", f"{epoch_loss_train:.4f}", f"{train_acc:.4f}", f"{train_rec:.4f}", f"{train_pre:.4f}"])
+        tableEpochMetrics.add_row(["Test", f"{epoch_loss_test:.4f}", f"{test_acc:.4f}", f"{test_rec:.4f}", f"{test_pre:.4f}"])
+        logging.info(f"\n{tableEpochMetrics}")
+
 
         # epoch log
         epoch_log[epoch] = {
@@ -220,7 +229,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
             torch.save(model.state_dict(), os.path.join(output_folder, f'best_model.pth'))
             log['best_model'] = {
                 'epoch': epoch,
-                'accuracy': str(test_acc),
+                'accuracy': str(test_acc.item()),
                 'loss': str(epoch_loss_test),
             }
             logging.info(f'Best model saved at epoch {epoch}.')
@@ -250,14 +259,14 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
     # ---- Rename Folder ----
     # rename folder with "finished" at the end
-    bestEpoch = log['best_model']['epoch']
-    bestAcc = log['best_model']['accuracy']
-    bestLoss = log['best_model']['loss']
+    bestEpoch = int(log['best_model']['epoch'])
+    bestAcc = float(log['best_model']['accuracy'])
+    bestLoss = float(log['best_model']['loss'])
 
-    folderPraefix = f'_finished_EP-{bestEpoch}_ACC-{float(bestAcc):.4f}_LOSS-{float(bestLoss):.4f}'
+    folderPraefix = f'_finished_EP-{bestEpoch}_ACC-{bestAcc:.4f}_LOSS-{bestLoss:.4f}.txt'
 
     # write finished file
-    with open(os.path.join(output_folder, f'finished_EP-{bestEpoch}_ACC-{bestAcc}_LOSS-{bestLoss}.txt'), 'w') as f:
+    with open(os.path.join(output_folder, folderPraefix), 'w') as f:
         f.write('Training finished.')
         f.write(f'Epochs: {epoch}')
         f.write(f'Best Epoch: {bestEpoch}')

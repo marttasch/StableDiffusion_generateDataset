@@ -33,7 +33,6 @@ def calc_mean_and_std(train_folder):
 
     return mean, std
 
-
 def load_data(config, mean, std, root_dir, train_folder, test_folder): # Directory as argument
   target_size = config['target_size']
 
@@ -45,11 +44,11 @@ def load_data(config, mean, std, root_dir, train_folder, test_folder): # Directo
                     transforms.Normalize(mean, std),
                     transforms.RandomHorizontalFlip(p=0.5),
                     transforms.RandomRotation(degrees=30),
-                    transforms.RandomErasing(p=0.3, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False),
-                    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
-                    transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
+                    #transforms.RandomErasing(p=0.3, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False),
+                    #transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+                    #transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
                     transforms.GaussianBlur(kernel_size=3),
-                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
+                    #transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
                     #transforms.Grayscale(num_output_channels=3),
                      ])
 
@@ -60,12 +59,23 @@ def load_data(config, mean, std, root_dir, train_folder, test_folder): # Directo
   os.chdir(root_dir) # defining workspace
   train_set = ImageFolder(root=train_folder, transform=t_train)
   test_set = ImageFolder(root=test_folder, transform=t_test)
-
-
+  
   # --- get class names
   class_names = train_set.classes
 
   return train_set, test_set, class_names
+
+def load_validation_data(target_size, mean, std, val_folder):
+  t_val = Compose([transforms.Resize(target_size),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std)])
+
+  #os.chdir(root_dir) # defining workspace
+  val_set = ImageFolder(root=val_folder, transform=t_val)
+
+  class_names = val_set.classes
+
+  return val_set, class_names
 
 def display_images(dataset, num_images=5):
   # Get random indices for selecting images

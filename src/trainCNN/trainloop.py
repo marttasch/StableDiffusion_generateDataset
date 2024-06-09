@@ -133,7 +133,6 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
 
                 epoch_loss_test.append(loss_test.item())   # store loss
 
-
         # --- Epoch Summary ---
         # -- calculate metrics --
         train_acc = train_accuracy.compute()
@@ -251,11 +250,14 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     tensorboard.writer.flush()   # flush tensorboard writer
 
     # send gotify message
-    gotify.send_message(
-        title='CNN Training finished',
-        message=f"""Finished {epoch} epochs in {get_TimeElapsed(startTime)}. \nBest model at epoch {log['best_model']['epoch']} with accuracy {log['best_model']['accuracy']} and loss {log['best_model']['loss']}.""",
-        priority=7
-    )
+    try:
+        gotify.send_message(
+            title='CNN Training finished',
+            message=f"""Finished {epoch} epochs in {get_TimeElapsed(startTime)}. \nBest model at epoch {log['best_model']['epoch']} with accuracy {log['best_model']['accuracy']} and loss {log['best_model']['loss']}.""",
+            priority=7
+        )
+    except Exception as e:
+        logging.error(f"Gotify message could not be sent: {e}")
 
     # ---- Rename Folder ----
     # rename folder with "finished" at the end
@@ -263,7 +265,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     bestAcc = float(log['best_model']['accuracy'])
     bestLoss = float(log['best_model']['loss'])
 
-    folderPraefix = f'_finished_EP-{bestEpoch}_ACC-{bestAcc:.4f}_LOSS-{bestLoss:.4f}.txt'
+    folderPraefix = f'_finished_EP-{bestEpoch}_ACC-{bestAcc:.4f}_LOSS-{bestLoss:.4f}'
 
     # write finished file
     with open(os.path.join(output_folder, folderPraefix), 'w') as f:
@@ -273,13 +275,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         f.write(f'Best Accuracy: {bestAcc}')
         f.write(f'Best Loss: {bestLoss}')
 
-    userInput = input("Training finished. Please close tensorboard and press enter to rename the folder.")
-
-    while True:
-        try:
-            os.rename(output_folder, output_folder + folderPraefix)
-            logging.info(f"Training finished. Folder renamed to {output_folder}{folderPraefix}")
-            break
-        except Exception as e:
-            logging.error(f"Error renaming folder: {e}")
-            userInput = input("Error renaming folder. Please close any open files in the folder and press enter to try again.")
+    # rename folder
+    userInput = input("\n=== Training finished. ===\nPlease close tensorboard and press Enter to rename the folder.")
+    # run seperate 
+    rename_folder(folder_path=output_folder, new_folder_name=output_folder + folderPraefix)

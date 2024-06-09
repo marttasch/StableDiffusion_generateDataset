@@ -120,20 +120,9 @@ class TensorBoard:
                     accumulators.append(accumulator)
         return accumulators
 
-    def plot_tensorboard_data(self, logdir=None):
-        filter_images = True
-        image_tag_whitelist = ['confusion matrix']
-
+    def extract_tensorboard_metrics(self, logdir=None):
         if logdir is None:
-            # self.tensor_board_root, one level up, + 'images-plots'
-            #logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
             logdir = self.tensor_board_root
-
-        # Prepare directories for plots and images
-        plot_dir = os.path.join(logdir, '..', 'images-plots', 'plots')
-        image_dir = os.path.join(logdir, '..', 'images-plots', 'images')
-        os.makedirs(plot_dir, exist_ok=True)
-        os.makedirs(image_dir, exist_ok=True)
 
         # Define the regex pattern
         #pattern = r"^(\w+)_(\d{2}-\d{2}-\d{2})_(\d{2}-\d{2})_([a-f0-9]+)_(Train|Test)$"
@@ -170,8 +159,41 @@ class TensorBoard:
                         steps = [e.step for e in events]
                         full_tag = f'{metric_name}'
                         metrics[full_tag] = pd.DataFrame({'Step': steps, 'Value': values})
-                    
-        #print(f"\nExtracted metrics: {metrics.keys()}")
+
+        # print(f"\nExtracted metrics: {metrics.keys()}")
+        
+        return metrics
+
+
+    def plot_tensorboard_data(self, logdir=None):
+        filter_images = True
+        image_tag_whitelist = ['confusion matrix']
+
+        if logdir is None:
+            # self.tensor_board_root, one level up, + 'images-plots'
+            #logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
+            logdir = self.tensor_board_root
+
+        # Prepare directories for plots and images
+        plot_dir = os.path.join(logdir, '..', 'images-plots', 'plots')
+        image_dir = os.path.join(logdir, '..', 'images-plots', 'images')
+        os.makedirs(plot_dir, exist_ok=True)
+        os.makedirs(image_dir, exist_ok=True)
+
+        # Extract metrics
+        metrics = self.extract_tensorboard_metrics(logdir)
+
+        # plot learning rate
+        LR_tag = 'Learning Rate'
+        if LR_tag in metrics:
+            plt.figure(figsize=(12, 6))
+            plt.plot(metrics[LR_tag]['Step'], metrics[LR_tag]['Value'])
+            plt.title('Learning Rate over Training Steps')
+            plt.xlabel('Training Steps')
+            plt.ylabel('Learning Rate')
+            plt.grid(True)
+            plt.savefig(os.path.join(plot_dir, 'learning_rate_plot.png'))
+            plt.close()
 
         # Plot metrics
         for metric in ['Accuracy', 'Loss', 'Recall', 'Precision']:

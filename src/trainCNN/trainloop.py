@@ -162,8 +162,8 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
         tensorboard.write_board(epoch, epoch_loss_train, train_acc, train_rec, train_pre, epoch_loss_test, test_acc, test_rec, test_pre, current_learning_rate)
 
         # -- confusion matrix --
-        cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(outputs, dim=1).cpu().numpy())
-        tensorboard.write_confusion_matrix(epoch, cm)
+        #cm = confusion_matrix(labels.cpu().numpy(), torch.argmax(outputs, dim=1).cpu().numpy())
+        #tensorboard.write_confusion_matrix(epoch, cm)
 
         # -- parameter histogram --
         #tensorboard.write_parameter_histogram(model, epoch)

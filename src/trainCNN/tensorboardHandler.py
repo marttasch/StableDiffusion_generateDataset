@@ -169,6 +169,19 @@ class TensorBoard:
         filter_images = True
         image_tag_whitelist = ['confusion matrix']
 
+        colors = {
+            'soft_blue': '#4c72b0',
+            'soft_orange': '#dd8452',
+            'soft_green': '#55a868',
+            'soft_red': '#c44e52',
+            'soft_purple': '#8172b3',
+            'soft_brown': '#937860',
+            'soft_pink': '#da8bc3',
+            'soft_gray': '#8c8c8c',
+            'soft_yellow': '#ccb974',
+            'soft_cyan': '#64b5cd'
+        }
+
         if logdir is None:
             # self.tensor_board_root, one level up, + 'images-plots'
             #logdir = os.path.join(self.tensor_board_root, '..', 'images-plots')
@@ -187,9 +200,9 @@ class TensorBoard:
         LR_tag = 'Learning Rate'
         if LR_tag in metrics:
             plt.figure(figsize=(12, 6))
-            plt.plot(metrics[LR_tag]['Step'], metrics[LR_tag]['Value'])
-            plt.title('Learning Rate over Training Steps')
-            plt.xlabel('Training Steps')
+            plt.plot(metrics[LR_tag]['Step'], metrics[LR_tag]['Value'], color=colors['soft_blue'])
+            plt.title('Learning Rate over Training Epochs')
+            plt.xlabel('Training Epochs')
             plt.ylabel('Learning Rate')
             plt.grid(True)
             plt.savefig(os.path.join(plot_dir, 'learning_rate_plot.png'))
@@ -202,45 +215,47 @@ class TensorBoard:
             
             if train_tag in metrics and test_tag in metrics:
                 plt.figure(figsize=(12, 6))
-                plt.plot(metrics[train_tag]['Step'], metrics[train_tag]['Value'], label='Train')
-                plt.plot(metrics[test_tag]['Step'], metrics[test_tag]['Value'], label='Test')
-                plt.title(f'{metric} over Training Steps')
-                plt.xlabel('Training Steps')
+                plt.plot(metrics[train_tag]['Step'], metrics[train_tag]['Value'], label='Train', color=colors['soft_blue'])
+                plt.plot(metrics[test_tag]['Step'], metrics[test_tag]['Value'], label='Test', color=colors['soft_orange'])
+                plt.title(f'{metric} over Training Epochs')
+                plt.xlabel('Training Epochs')
                 plt.ylabel(metric)
                 plt.grid(True)
                 # datapoints with label
-                for i, txt in enumerate(metrics[train_tag]['Value']):
-                    plt.annotate(f"{txt:.3f}", (metrics[train_tag]['Step'][i], metrics[train_tag]['Value'][i]), color='gray')
-                for i, txt in enumerate(metrics[test_tag]['Value']):
-                    plt.annotate(f"{txt:.3f}", (metrics[test_tag]['Step'][i], metrics[test_tag]['Value'][i]), color='gray')
+                # for i, txt in enumerate(metrics[train_tag]['Value']):
+                #     plt.annotate(f"{txt:.3f}", (metrics[train_tag]['Step'][i], metrics[train_tag]['Value'][i]), color='gray')
+                # for i, txt in enumerate(metrics[test_tag]['Value']):
+                #     plt.annotate(f"{txt:.3f}", (metrics[test_tag]['Step'][i], metrics[test_tag]['Value'][i]), color='gray')
 
                 plt.legend()
                 plt.savefig(os.path.join(plot_dir, f'{metric}_plot.png'))
                 plt.close()
         
         # extract images
-        images = {}
-        for accumulator in accumulators:
-            ea = accumulator['ea']
-            path = accumulator['path']
-            image_tags = ea.Tags()['images']
-            for tag in image_tags:
-                if filter_images:
-                    if tag.lower() in image_tag_whitelist:
-                        images[tag] = ea.Images(tag)
-                else:
-                    images[tag] = ea.Images(tag)
+        # images = {}
+        # for accumulator in accumulators:
+        #     ea = accumulator['ea']
+        #     path = accumulator['path']
+        #     image_tags = ea.Tags()['images']
+        #     for tag in image_tags:
+        #         if filter_images:
+        #             if tag.lower() in image_tag_whitelist:
+        #                 images[tag] = ea.Images(tag)
+        #         else:
+        #             images[tag] = ea.Images(tag)
 
             
         #print(f"\nExtracted images: {images.keys()}")
 
-        # Export images
-        for tag, image in images.items():
-            for i, img in enumerate(image):
-                img_data = io.BytesIO(img.encoded_image_string)
-                img = plt.imread(img_data)
-                plt.imshow(img)
-                plt.axis('off')
-                plt.title(tag)
-                plt.savefig(os.path.join(image_dir, f'{tag}_{i}.png'))
-                plt.close()
+        # # Export images
+        # for tag, image in images.items():
+        #     for i, img in enumerate(image):
+        #         img_data = io.BytesIO(img.encoded_image_string)
+        #         img = plt.imread(img_data)
+        #         plt.imshow(img)
+        #         plt.axis('off')
+        #         plt.title(tag)
+        #         plt.savefig(os.path.join(image_dir, f'{tag}_{i}.png'))
+        #         plt.close()
+
+        print(f"\nPlots and images saved in {plot_dir} and {image_dir}")

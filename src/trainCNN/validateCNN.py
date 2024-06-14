@@ -81,6 +81,7 @@ def validate_model(model, device, class_names, val_set, batch_size: int, output_
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title('Confusion Matrix')
+    plt.tight_layout()
     plt.savefig(os.path.join(output_folder, 'confusion_matrix.png'))
     plt.close()
 
@@ -112,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained_model', type=str, required=False, help='Name of the pretrained model (ResNet50, InceptionV3)')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the trained model')
     parser.add_argument('--val_set_path', type=str, required=False, help='Path to the validation set')
+    parser.add_argument('--output_folder', type=str, required=False, help='Path to the output folder')
     args = parser.parse_args()
 
     # ===== Check Arguments =====
@@ -159,12 +161,16 @@ if __name__ == "__main__":
     else:
         valSetPath = args.val_set_path
 
+    if args.output_folder is None:
+        outputFolder = os.path.join(folderPath, 'validation')
+        os.makedirs(outputFolder, exist_ok=True)
+    else:
+        outputFolder = os.path.join(args.output_folder, 'validation')
+        os.makedirs(outputFolder, exist_ok=True)
+
     # ==== END OF ARGUMENT CHECKS ====
 
     # --- Paths ---
-    folderPath = os.path.dirname(args.model_path)
-    outputFolder = os.path.join(folderPath, 'validation')
-    os.makedirs(outputFolder, exist_ok=True)
     modelPath = args.model_path
 
 

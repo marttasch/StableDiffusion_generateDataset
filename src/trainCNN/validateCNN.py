@@ -23,7 +23,7 @@ datasetsFolder = r"D:\code\Bachelorarbeit\xx_code_BA\datasets"   # if dataset fo
 
  
 # --- Define validation function ---
-def validate_model(model, device, class_names, val_set, batch_size: int, output_folder, logging):
+def validate_model(model, device, class_names, val_set, batch_size: int, output_folder, logging, datasetName):
     model = model.to(device)
     model.eval()   # set model to evaluation mode
     criterion = torch.nn.CrossEntropyLoss()
@@ -77,10 +77,11 @@ def validate_model(model, device, class_names, val_set, batch_size: int, output_
     cm = confusion_matrix(all_targets, all_preds)
     # save confusion matrix
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.title('Confusion Matrix')
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)    
+    plt.xlabel('Predicted', weight='bold')
+    plt.ylabel('True', weight='bold')
+    #plt.title(f'Validation Confusion Matrix {datasetName}', fontsize=16)
+    plt.title(f'Validation Confusion Matrix', fontsize=16)
     plt.tight_layout()
     plt.savefig(os.path.join(output_folder, 'confusion_matrix.png'))
     plt.close()

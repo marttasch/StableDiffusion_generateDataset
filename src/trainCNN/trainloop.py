@@ -32,6 +32,7 @@ def trainloop(model, config, device, class_names, train_set, test_set, output_fo
     log['class_names'] = class_names
     log['training_set'] = [str(train_set)]
     log['test_set'] = [str(test_set)]
+    log['class_names'] = class_names
     log['mean'] = [str(mean)]
     log['std'] = [str(std)]
     log['device'] = str(device)

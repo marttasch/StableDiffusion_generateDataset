@@ -107,6 +107,9 @@ def main():
     logging.info(f"Please check the displayed images. To continue close the image window.")
     trainingFunctions.display_images(train_set, num_images=5)   # display some images
 
+    # print class names with index
+    logging.info(f"Class names: {class_names}")
+
     # --- Model ---
     # pretrained model
     logging.info(f"Load pretrained model: {pretrainedModel}...")

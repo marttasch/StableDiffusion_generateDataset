@@ -2,16 +2,17 @@
 This repository contains the code for the Experiment of my Bachelor Thesis. The goal is to use Stable Diffusion to generate a trainingsdataset for a image recognition model, like ResNET50 or InceptionV3.
 This Project uses the [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) with enabled API to generate the images. The generated images can be segmented with the [sd-webui-segmentation-anything](https://github.com/continue-revolution/sd-webui-segment-anything) Plugin. The Segmented images can then be used to train a image recognition model. Also some Validation Options are available to validate the trained Model and evaluate the generated images.
 
-## Usage
-### general
+# Usage
+## general
 - Prompt-Config: `prompt_config.json` contains a Prompt-Template wich will be used to generate a list of variations of prompts
 - Image Generation: `generateDataset.py` uses the A1111 API to generate images and split them into train, test and validation sets
 - CNN Training: `trainCNN.py` uses the generated images to train a CNN model
 - CNN Evaluation: `validateCNN.py` uses the trained model to validate with the validation set or evaluate on custom Folder
 
-The Scripts can be controlled by passing arguments or by using the Jupyter Notebook UI
+The Scripts can be controlled by passing arguments or by using the Jupyter Notebook UI.
+Some Settings can be changed in the top of the scripts.
 
-### Jupyter Notebook UI
+## Jupyter Notebook UI
 Simple UI Elements, to start the Scripts
 
 `01_main.ipynb`
@@ -27,14 +28,22 @@ Simple UI Elements, to start the Scripts
 `03_plots.ipynb`
 - was used to generate Plots for the Thesis
 
+# Method
+- Prompt-Template: Generate a list of Prompts with different variations
+- A1111-API: Use same settings and models in A1111-WebUI to generate images
+- LoRA: To train new concepts to Stable Diffusion, LoRA proved to be a good training method
+- Segmentation: Use the Segmentation Plugin to segment the generated images
+- generate Dataset: generated Images from prompts are split into train, test and validation sets
+- train CNN: Use the generated Dataset to train a CNN model
 
+# Installation
 ## Requirements
 - AUTOMATIC1111/stable-diffusion-webui with enabled API
     - [Github](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
 - Automatic1111 Addons
     - [sd-webui-segmentation-anything](https://github.com/continue-revolution/sd-webui-segment-anything)
     
-## Installation
+## Install
 - `pip install -r requirements.txt`
 - check CUDA version with `nvcc --version`
    - or use NVIDIA-Control-Panel -> Help -> System Information -> Components -> CUDA Driver Version
